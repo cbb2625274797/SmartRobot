@@ -65,22 +65,10 @@ def post(refer_wav_path, refer_wav_text, text):
 
 
 if __name__ == '__main__':
-    my_dict = {
-        "开心": "开心",
-        "害怕": "害怕",
-        "生气": "生气",
-        "失落": "失落",
-        "好奇": "好奇",
-        "戏谑": "戏谑"
-    }
-    # 将字典保存到JSON文件中
-    with open('EmotionEngine/paimon/情绪代码.json', 'w') as f:
-        json.dump(my_dict, f)
-    exit(0)
     # 从JSON文件中读取字典
-    with open('EmotionEngine/情绪代码.json', 'r') as f:
+    with open('EmotionEngine/EmotionList/wanye/情绪参考文本.json', 'r') as f:
         loaded_dict = json.load(f)
-    print(loaded_dict["1"])
+    print(loaded_dict["生气"])
     exit(0)
 
     audio1 = post("EmotionEngine/EmotionList/paimon/开心.wav",
@@ -94,3 +82,17 @@ if __name__ == '__main__':
         "请确保你的POST请求返回的是有效的音频流数据，并且你正确处理了任何潜在的错误或异常。此外，根据你的具体需求，你可能还需要调整音频的质量、比特率等参数，这可以通过export方法的参数来实现。")
     audio1.export("get.mp3", format="mp3")
     print("音频流已保存为 get.mp3")
+    exit(0)
+
+    my_dict = {
+        "开心": "嗯，能有一个让我暂时安身的地方，我很开心。",
+        "害怕": "恐怕那时候的他就已经受了碎神之力的影响。",
+        "生气": "要是天目幽野正在无差别，行凶不赶快阻止他，还有更多人会遭遇同样的不幸。",
+        "失落": "说的也是，感谢各位的关心。幸好这些事对我而言都是过去了。",
+        "好奇": "此事的讨论先告一段落，你们两位为什么会找到这里来？",
+        "戏谑": "大姐头，对这种事情恐怕是毫无兴趣，我便想着不如请你来体会一番。"
+    }
+    # 将字典保存到JSON文件中
+    with open('EmotionEngine/EmotionList/wanye/情绪参考文本.json', 'w') as f:
+        json.dump(my_dict, f)
+    exit(0)

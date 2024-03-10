@@ -1,6 +1,6 @@
 from aip import AipSpeech
 import pygame
-import os
+import json
 import pyttsx3
 import sounddevice as sd
 from scipy.io.wavfile import write
@@ -58,8 +58,22 @@ def PYTTS(text, filename):
     engine.runAndWait()
 
 
-def SOVITS_TTS(text, filename):
-    audio = SOVITS.post("./EmotionEngine/EmotionList/paimon/开心.wav", "要不，我们两个也去看看吧，如果能帮上忙，就可以更早吃上万民堂的料理了", text)
+def SOVITS_TTS(character, emotion, text, filename):
+    number_to_str = {
+        0: '开心',
+        1: '害怕',
+        2: '生气',
+        3: '失落',
+        4: '好奇',
+        5: '戏谑'
+    }
+    # 从JSON文件中读取字典
+    with open('EmotionEngine/EmotionList/' + character + '/情绪参考文本.json', 'r') as f:
+        loaded_dict = json.load(f)
+    refer_text = loaded_dict[number_to_str[emotion]]
+    refer_path = "./EmotionEngine/EmotionList/" + character + "/" + number_to_str[emotion] + ".wav"
+    audio = SOVITS.post(refer_path, refer_text, text)
+
     # 将WAV转换为MP3并保存
     audio.export(filename, format="mp3")
 

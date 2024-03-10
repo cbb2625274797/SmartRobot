@@ -1,0 +1,12 @@
+baidu_aip==4.16.13
+numpy==1.26.4
+onnxruntime==1.17.1
+paho_mqtt==1.6.1
+pydub==0.25.1
+pygame==2.5.2
+pyttsx3==2.90
+qianfan==0.3.4
+Requests==2.31.0
+scipy==1.12.0
+sounddevice==0.4.6
+transformers==4.32.0

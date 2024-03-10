@@ -23,7 +23,7 @@ if __name__ == '__main__':
     # text = AU.STT(filepath)[0]
     # print(text)
 
-    QF.chat("Yi-34B-Chat", "'你好'的英文怎么说，然后能够列举下‘你好’的另一些英文表达吗？")
+    QF.chat("Yi-34B-Chat", "请你介绍你自己")
 
     """ 
     while True:

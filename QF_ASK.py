@@ -6,6 +6,7 @@ import time
 import re
 
 need_read = 0
+analysing = 0
 generating = False
 text = ""
 
@@ -26,17 +27,20 @@ def chat(model, chat_text):
     thread1 = threading.Thread(target=thread_function_1, args=(resp,))
     thread2 = threading.Thread(target=thread_function_2)
     thread3 = threading.Thread(target=thread_function_3)
+    # thread4 = threading.Thread(target=thread_function_4)
 
     # 生成音频文件
     need_read = 0
     thread1.start()
     thread2.start()
     thread3.start()
+    # thread4.start()
 
     # 等待线程完成
     thread1.join()
     thread2.join()
     thread3.join()
+    # thread4.join()
 
 
 # 定义第一个线程是和大语言模型交互
@@ -59,7 +63,9 @@ def thread_function_1(resp):
 def thread_function_3():
     global need_read
     global text
+    global analysing
     cnt = 0
+    analysing = 0
     while generating:
         # 使用正则表达式匹配以句号、问号或感叹号结尾的句子
         sentence_pattern = r'(.+?)[。!?？！]'
@@ -75,8 +81,16 @@ def thread_function_3():
 
             cnt += 1
             filename = "./audio/" + "audio" + str(cnt) + ".mp3"
-            audio.SOVITS_TTS(first_sentence, filename)
+            audio.SOVITS_TTS("paimon", 0, first_sentence, filename)
             need_read += 1
+
+
+''''
+# 第四线程用于情感分析
+def thread_function_4():
+    print("analysing")
+    time.sleep(3)
+'''
 
 
 # 定义第二个线程播放音频
