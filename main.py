@@ -1,9 +1,34 @@
 import QF_ASK as QF
-import audio_process as AU
+import MQTT
+import threading
+import time
 import os
 import glob
 
 filepath = "./audio/recorded_audio.wav"
+
+
+def thread_function_1():
+    while True:
+        time.sleep(1)
+        # AU.record(5, 16000, filepath)
+
+        # text = AU.STT(filepath)[0]
+        # print(text)
+        question = input("请输入你的提问:\n")
+        QF.chat("Yi-34B-Chat", question)
+
+
+def thread_function_2():
+    MQTT.stop_server()
+    time.sleep(1)
+    MQTT.start_server()
+    time.sleep(3)
+    MQTT.client_init()
+
+
+thread2 = threading.Thread(target=thread_function_2)
+thread1 = threading.Thread(target=thread_function_1)
 
 
 def init():
@@ -18,15 +43,5 @@ def init():
 if __name__ == '__main__':
     init()
 
-    # AU.record(5, 16000, filepath)
-
-    # text = AU.STT(filepath)[0]
-    # print(text)
-
-    QF.chat("Yi-34B-Chat", "请你介绍你自己")
-
-    """ 
-    while True:
-        ask = input("输入：\n")
-        QF.chat(ask)
-    """
+    thread1.start()
+    thread2.start()

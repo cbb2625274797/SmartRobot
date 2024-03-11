@@ -23,6 +23,7 @@ def chat(model, chat_text):
         "role": "user",
         "content": chat_text
     }], stream=True)
+
     # 创建线程对象
     thread1 = threading.Thread(target=thread_function_1, args=(resp,))
     thread2 = threading.Thread(target=thread_function_2)

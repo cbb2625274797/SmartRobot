@@ -32,7 +32,7 @@ def request(text):
 
 def post(refer_wav_path, refer_wav_text, text):
     # 设置URL和要发送的数据
-    url = 'http://192.168.112.15:9880'
+    url = 'http://192.168.37.15:9880'
     data = {
         "refer_wav_path": refer_wav_path,
         "prompt_text": refer_wav_text,
