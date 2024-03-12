@@ -6,28 +6,25 @@ from pydub import AudioSegment
 from io import BytesIO
 import json
 
-
-# request会有问题，不支持使用
-def request(text):
-    # 设置请求的URL
-    url = ('http://192.168.112.15:9880?refer_wav_path=C:/Users/cbb/Downloads/Compressed/雷电将军/vocal'
-           '/vo_SGLQ002_9_raidenEi_01.wav&prompt_text=看你们的表情，应该读到了不错的故事吧&prompt_language=中文&text='
-           + text + '&text_language=中文')
-
-    # 发送GET请求
-    response = requests.get(url)
-
-    # 检查请求是否成功
-    if response.status_code == 200:
-        # 将响应内容读取为字节流
-        audio_stream = BytesIO(response.content)
-
-        # 假设音频流是WAV格式
-        audio = AudioSegment.from_wav(audio_stream)
-        return audio
-    else:
-        # 请求失败，打印错误信息
-        print('请求失败，状态码：', response.status_code)
+#
+# # request会有问题，不支持使用
+# def request(text):
+#     # 设置请求的URL
+#     url = ('http://192.168.37.15:9880?refer_wav_path=C:/Users/cbb/Downloads/Compressed/雷电将军/vocal/vo_SGLQ002_9_raidenEi_01.wav&prompt_text=看你们的表情，应该读到了不错的故事吧&prompt_language=中文&text=你真的很厉嗨啊，撒低级阿松大师姐殴打&text_language=中文')
+#     # 发送GET请求
+#     response = requests.get(url)
+#
+#     # 检查请求是否成功
+#     if response.status_code == 200:
+#         # 将响应内容读取为字节流
+#         audio_stream = BytesIO(response.content)
+#
+#         # 假设音频流是WAV格式
+#         audio = AudioSegment.from_wav(audio_stream)
+#         return audio
+#     else:
+#         # 请求失败，打印错误信息
+#         print('请求失败，状态码：', response.status_code)
 
 
 def post(refer_wav_path, refer_wav_text, text):

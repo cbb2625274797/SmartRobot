@@ -4,25 +4,36 @@ import qianfan
 import audio_process as audio
 import time
 import re
+import copy
 
-need_read = 0
-analysing = 0
-generating = False
-text = ""
-
-# 使用安全认证AK/SK鉴权，通过环境变量方式初始化；替换下列示例中参数，安全认证Access Key替换your_iam_ak，Secret Key替换your_iam_sk
+# 使用安全认证AK/SK鉴权，通过环境变量方式初始化;
 os.environ["QIANFAN_ACCESS_KEY"] = "3d9df86f23d64f0f8a072eb391ec1dad"
 os.environ["QIANFAN_SECRET_KEY"] = "465151a1ed0f426a9e9662d6f3cdd7a9"
 
 chat_comp = qianfan.ChatCompletion()
 
+need_read = 0
+analysing = 0
+generating = False
+text = ""
+reply_model = {
+    "role": "assistant",
+    "content": "content"
+}
+ask_model = {
+    "role": "user",
+    "content": "content"
+}
+msgs = []
+
 
 def chat(model, chat_text):
     global need_read
-    resp = chat_comp.do(model=model, messages=[{
-        "role": "user",
-        "content": chat_text
-    }], stream=True)
+
+    ask = copy.deepcopy(ask_model)
+    ask["content"] = chat_text
+    msgs.append(ask)
+    resp = chat_comp.do(model=model, messages=msgs, stream=True)
 
     # 创建线程对象
     thread1 = threading.Thread(target=thread_function_1, args=(resp,))
@@ -44,17 +55,24 @@ def chat(model, chat_text):
     # thread4.join()
 
 
-# 定义第一个线程是和大语言模型交互
+# 定义第一个线程是提取输出结果
 def thread_function_1(resp):
     global need_read
     global generating
     global text
     generating = True  # 用于退出第二线程的循环
 
+    reply_text = ""
     for r in resp:
         result = r.get("result")
         text += result
-        time.sleep(5)  # 等待文字生成
+        reply_text += result
+        # time.sleep(2)  # 等待文字生成
+
+    reply = copy.deepcopy(reply_model)
+    reply["content"] = reply_text
+    msgs.append(reply)
+    print(msgs)
 
     time.sleep(3)  # 等待第三线程处理完文字
     generating = False
