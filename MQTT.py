@@ -1,7 +1,7 @@
 import subprocess
 import paho.mqtt.client as mqtt
 
-HOST = "192.168.37.15"
+HOST = "192.168.192.15"
 PORT = 1883
 # 创建一个MQTT客户端实例
 client = mqtt.Client("python1")
@@ -64,5 +64,7 @@ def on_message(client, userdata, msg):
 
 
 if __name__ == '__main__':
-    stop_server()
-    start_server()
+    # stop_server()
+    # start_server()
+    client_init()
+

@@ -5,6 +5,7 @@ import json
 from pydub import AudioSegment
 from io import BytesIO
 import json
+url = 'http://192.168.192.15:9880'
 
 #
 # # request会有问题，不支持使用
@@ -29,7 +30,7 @@ import json
 
 def post(refer_wav_path, refer_wav_text, text):
     # 设置URL和要发送的数据
-    url = 'http://192.168.37.15:9880'
+
     data = {
         "refer_wav_path": refer_wav_path,
         "prompt_text": refer_wav_text,

@@ -5,19 +5,28 @@ import pyttsx3
 import sounddevice as sd
 from scipy.io.wavfile import write
 import GPT_SOVITS as SOVITS
+import numpy as np
 
 
 # 设置录音参数
-def record(duration, samplerate, filename):
+def record(duration, samplerate, filepath):
     # 使用sounddevice录制音频
     print("开始录音...")
     myrecording = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=1)
     sd.wait()  # 等待录音结束
     print("录音结束")
 
-    # 将录制的音频保存为WAV文件
-    write(filename, samplerate, myrecording)
-    print(f"音频文件已保存为 {filename}")
+    # WAV文件需要的采样率（通常为整数）和位深度（通常为16）
+    wav_fs = int(samplerate)
+    wav_dtype = np.int16  # 16位整数
+
+    # 确保录音数据的位深度与WAV文件匹配
+    if myrecording.dtype != wav_dtype:
+        recording = (myrecording * (2 ** 15 - 1)).astype(wav_dtype)
+
+        # 保存为WAV文件
+    write(filepath, wav_fs, recording)
+    print("录音已保存为 'output.wav'")
 
 
 """ 你的 APPID AK SK """
@@ -36,8 +45,9 @@ def get_file_content(filepath):
 
 def STT(filepath):
     return_value = client.asr(get_file_content(filepath), 'wav', 16000, {'dev_pid': 1537})
-    # 识别本地文件
-    # print(return_value.get('result')[0])
+    # 识别文件
+    print(return_value)
+    print(return_value.get('result')[0])
     return return_value.get('result')
 
 
@@ -58,7 +68,7 @@ def PYTTS(text, filename):
     engine.runAndWait()
 
 
-def SOVITS_TTS(character, emotion, text, filename):
+def SOVITS_TTS(character: str, emotion: int, text, filename):
     number_to_str = {
         0: '开心',
         1: '害怕',
@@ -80,16 +90,20 @@ def SOVITS_TTS(character, emotion, text, filename):
 def play(mp3_file_path):
     # 初始化pygame音频模块
     pygame.mixer.init()
-
     # 加载MP3文件
     pygame.mixer.music.load(mp3_file_path)
-
     # 播放MP3文件
     pygame.mixer.music.play()
-
     # 等待播放完成（如果需要）
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
-
     # 退出pygame（可选）
     pygame.quit()
+
+
+if __name__ == '__main__':
+    record(5, 16000, "./audio/recorded_audio.wav")
+    # STT("./audio/recorded_audio.wav")
+    # SOVITS_TTS("paimon", 0,
+    #            "携手最具影响力的中文知识平台，用知识的价值提升品牌的价值。针对不同类型的权威机构提供丰富的合作模式，开展基于知识传播的公益合作，强势展现合作方优质资源，提升品牌影响力。",
+    #            "TTS.mp3")

@@ -67,7 +67,7 @@ def thread_function_1(resp):
         result = r.get("result")
         text += result
         reply_text += result
-        # time.sleep(2)  # 等待文字生成
+        time.sleep(2)  # 等待文字生成
 
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
@@ -87,7 +87,7 @@ def thread_function_3():
     analysing = 0
     while generating:
         # 使用正则表达式匹配以句号、问号或感叹号结尾的句子
-        sentence_pattern = r'(.+?)[。!?？！]'
+        sentence_pattern = r'(.+?)[。!?？！ *]'
         while re.search(sentence_pattern, text):
             match = re.search(sentence_pattern, text)
             # 提取第一句话
