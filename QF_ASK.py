@@ -13,7 +13,7 @@ os.environ["QIANFAN_SECRET_KEY"] = "465151a1ed0f426a9e9662d6f3cdd7a9"
 chat_comp = qianfan.ChatCompletion()
 
 need_read = 0
-analysing = 0
+synthesising = 0
 generating = False
 text = ""
 reply_model = {
@@ -74,17 +74,17 @@ def thread_function_1(resp):
     msgs.append(reply)
     print(msgs)
 
-    time.sleep(3)  # 等待第三线程处理完文字
-    generating = False
+    if synthesising == 1:
+        generating = False
 
 
 # 第三线程用于分段+生成
 def thread_function_3():
     global need_read
     global text
-    global analysing
+    global synthesising
     cnt = 0
-    analysing = 0
+    synthesising = 0
     while generating:
         # 使用正则表达式匹配以句号、问号或感叹号结尾的句子
         sentence_pattern = r'(.+?)[。!?？！ *]'
@@ -100,7 +100,9 @@ def thread_function_3():
 
             cnt += 1
             filename = "./audio/" + "audio" + str(cnt) + ".mp3"
+            synthesising = 1
             audio.SOVITS_TTS("paimon", 0, first_sentence, filename)
+            synthesising = 0
             need_read += 1
 
 
@@ -120,20 +122,25 @@ def thread_function_2():
     while True:
         if generating:  # 触发进入阅读
             # 播放所有生成的音频文件
-            cnt = 0
+            cnt = 1
             while True:
-                cnt += 1
                 filename = "./audio/" + "audio" + str(cnt) + ".mp3"
                 if os.path.exists(filename) and need_read:
                     audio.play(filename)
                     need_read -= 1
-                elif need_read == 0 and generating is False:
-                    print("输出完毕")
+                    # print("播放：" + filename)
+                    cnt += 1
+                elif need_read == 0 and generating is False and synthesising == 0:
+                    print("回答完毕")
                     break
+                elif need_read == 0 and generating is False and synthesising == 1:
+                    time.sleep(0.1)
+                    # print("等待语音生成...")
                 else:
-                    cnt -= 1
+                    time.sleep(0.1)
+                    # print("没有完成，等待")
         break
 
 
 if __name__ == '__main__':
-    chat("Yi-34B-Chat", "请你自我介绍")
+    chat("Yi-34B-Chat", "你可以介绍一下华盛顿的地理位置吗")
