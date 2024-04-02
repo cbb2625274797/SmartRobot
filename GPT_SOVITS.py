@@ -1,12 +1,11 @@
-import sys
-
+import socket
 import requests
-import json
 from pydub import AudioSegment
 from io import BytesIO
 import json
-url = 'http://192.168.192.15:9880'
 
+
+url = 'http://192.168.82.15:9880/'
 #
 # # request会有问题，不支持使用
 # def request(text):
@@ -63,10 +62,6 @@ def post(refer_wav_path, refer_wav_text, text):
 
 
 if __name__ == '__main__':
-    # 从JSON文件中读取字典
-    with open('EmotionEngine/EmotionList/wanye/情绪参考文本.json', 'r') as f:
-        loaded_dict = json.load(f)
-    print(loaded_dict["生气"])
     exit(0)
 
     audio1 = post("EmotionEngine/EmotionList/paimon/开心.wav",
