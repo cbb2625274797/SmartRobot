@@ -5,7 +5,7 @@ from io import BytesIO
 import json
 
 
-url = 'http://192.168.82.15:9880/'
+url = 'http://192.168.66.15:9880/'
 #
 # # request会有问题，不支持使用
 # def request(text):

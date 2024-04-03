@@ -152,4 +152,4 @@ def thread_function_2():
 
 
 if __name__ == '__main__':
-    chat("Yi-34B-Chat", "你可以介绍一下华盛顿的地理位置吗")
+    chat("Yi-34B-Chat", "你可以介绍一下以色列吗")
