@@ -2,6 +2,7 @@ import wiringpi
 import numpy as np
 import argparse
 import time
+import bezier
 
 parser = argparse.ArgumentParser(description='i2c')
 parser.add_argument("--device", type=str, default="/dev/i2c-2", help='specify the i2c node')
@@ -59,7 +60,7 @@ class PWM:
 
     def setPWMFreq(self, freq: float):
         print("调整频率" + str(freq))
-        # freq *= 0.9
+        freq *= 0.9
         # PCA9685的时钟频率是25MHz
         prescaleval = 25000000
         prescaleval /= 4096
@@ -97,8 +98,11 @@ class PWM:
         self.set_Angle(num, start_angle)
         if start_angle < stop_angle:
             float_array = np.arange(start_angle, stop_angle, speed)
+            float_array = bezier.angle_bezier_clamped(start_angle, stop_angle, start_angle * 1.1, stop_angle * 0.8,
+                                                      round(10 * abs(start_angle - stop_angle) / speed))
         else:
-            float_array = np.arange(start_angle, stop_angle, -speed)
+            float_array = bezier.angle_bezier_clamped(start_angle, stop_angle, start_angle * 0.75, stop_angle * 1.1,
+                                                      round(10 * abs(start_angle - stop_angle) / speed))
 
         for i in float_array:
             self.set_Angle(num, i)
@@ -115,6 +119,7 @@ class PWM:
 if __name__ == '__main__':
     pwm_ins1 = PWM()
     # pwm_ins1.test()
-    pwm_ins1.angle_switch(1, 0, 120, 0.25)
-    pwm_ins1.angle_switch(1, 120, 0, 0.25)
-    pwm_ins1.set_Angle(1, 90)
+    pwm_ins1.angle_switch(0, 90, 30, 4)
+    pwm_ins1.angle_switch(0, 30, 150, 3)
+    pwm_ins1.angle_switch(0, 150, 30, 3)
+    pwm_ins1.angle_switch(0, 30, 90, 4)
