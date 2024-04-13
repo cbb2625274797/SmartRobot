@@ -68,20 +68,12 @@ def PYTTS(text, filename):
     engine.runAndWait()
 
 
-def SOVITS_TTS(character: str, emotion: int, text, filename):
-    number_to_str = {
-        0: '开心',
-        1: '害怕',
-        2: '生气',
-        3: '失落',
-        4: '好奇',
-        5: '戏谑'
-    }
+def SOVITS_TTS(character: str, emotion: str, text, filename):
     # 从JSON文件中读取字典
     with open('EmotionEngine/EmotionList/' + character + '/情绪参考文本.json', 'r') as f:
         loaded_dict = json.load(f)
-    refer_text = loaded_dict[number_to_str[emotion]]
-    refer_path = "./EmotionEngine/EmotionList/" + character + "/" + number_to_str[emotion] + ".wav"
+    refer_text = loaded_dict[emotion]
+    refer_path = "./EmotionEngine/EmotionList/" + character + "/" + emotion + ".wav"
     audio = SOVITS.post(refer_path, refer_text, text)
     # 将WAV转换为MP3并保存
     audio.export(filename, format="mp3")
@@ -102,8 +94,10 @@ def play(mp3_file_path):
 
 
 if __name__ == '__main__':
-    record(5, 16000, "./audio/recorded_audio.wav")
+    pass
+    # record(5, 16000, "./audio/recorded_audio.wav")
+
     # STT("./audio/recorded_audio.wav")
-    # SOVITS_TTS("paimon", 0,
-    #            "携手最具影响力的中文知识平台，用知识的价值提升品牌的价值。针对不同类型的权威机构提供丰富的合作模式，开展基于知识传播的公益合作，强势展现合作方优质资源，提升品牌影响力。",
+    # SOVITS_TTS("paimon", '开心',
+    #            "携手最具影响力的中文知识平台，用知识的价值提升品牌的价值。",
     #            "TTS.mp3")

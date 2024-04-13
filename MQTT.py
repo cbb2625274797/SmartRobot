@@ -1,7 +1,10 @@
 import subprocess
-import paho.mqtt.client as mqtt
+import time
 
-HOST = "192.168.192.15"
+import paho.mqtt.client as mqtt
+import threading
+
+HOST = "192.168.66.193"
 PORT = 1883
 # 创建一个MQTT客户端实例
 client = mqtt.Client("python1")
@@ -43,8 +46,8 @@ def client_init():
     # 连接到MQTT服务器
     client.connect(HOST, 1883, 60)
     # 开始循环，等待MQTT事件
-    subscribe("pc2")
-    subscribe("pc1")
+    subscribe("cbb/TALK")
+    subscribe("cbb/PYTHON")
     client.loop_forever()
 
 
@@ -65,7 +68,25 @@ def on_message(client, userdata, msg):
         print("receive")
 
 
+def publish(topic, message, qos):
+    client.publish(topic, message, qos=qos)
+    print(f'publish{topic}:{message}')
+
+
 if __name__ == '__main__':
-    # stop_server()
-    # start_server()
-    client_init()
+    def thread_function_1():
+        client_init()
+
+
+    def thread_function_2():
+        time.sleep(1)
+        while 1:
+            message = input("请输入：")
+            publish('cbb/TALK', message, qos=1)
+
+
+    thread1 = threading.Thread(target=thread_function_1)
+    thread2 = threading.Thread(target=thread_function_2)
+
+    thread1.start()
+    thread2.start()

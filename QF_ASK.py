@@ -6,6 +6,7 @@ import time
 import re
 import copy
 import MQTT
+import EmotionEngine.EmotionJudge as EMOTION
 
 # 使用安全认证AK/SK鉴权，通过环境变量方式初始化;
 os.environ["QIANFAN_ACCESS_KEY"] = "3d9df86f23d64f0f8a072eb391ec1dad"
@@ -35,7 +36,10 @@ def chat(model, chat_text):
     ask = copy.deepcopy(ask_model)
     ask["content"] = chat_text
     msgs.append(ask)
-    resp = chat_comp.do(model=model, messages=msgs, stream=True)
+    name = "小斌"
+    resp = chat_comp.do(model=model, messages=msgs, stream=True,
+                        system=f"你是一个富有情感的机器人，叫做{name}，需要为用户解答任何问题，并且每次解答，在以下的心情中挑选一个输出在回答的最前面，心情的输出格式如下："
+                               "-/开心。、-/失落。、-/好奇。、-/害怕。、-/戏谑。、-/生气。")
 
     # 创建线程对象
     thread1 = threading.Thread(target=thread_function_1, args=(resp,))
@@ -76,9 +80,9 @@ def thread_function_1(resp):
     msgs.append(reply)
     print(msgs)
 
-    if synthesising == 1:
-        time.sleep(5)
-        generating = False
+    while synthesising:
+        time.sleep(0.5)
+    generating = False
 
 
 # 第三线程用于分段+生成
@@ -90,6 +94,7 @@ def thread_function_3():
     sentences = [""]
     cnt = 0
     synthesising = 0
+    emotion = '开心'
     while generating:
         # 使用正则表达式匹配以句号、问号或感叹号结尾的句子
         sentence_pattern = r'(.+?)[。？！]'
@@ -107,9 +112,17 @@ def thread_function_3():
             filename = "./audio/" + "audio" + str(cnt) + ".mp3"
             synthesising = 1
             # print(first_sentence)
-            audio.SOVITS_TTS("paimon", 0, first_sentence, filename)
+            try:
+                audio.SOVITS_TTS("paimon", emotion, first_sentence, filename)
+            except Exception as e:
+                # 错误处理逻辑，如打印错误信息、记录日志等
+                print(f"An error occurred: {e}")
             synthesising = 0
-            need_read += 1
+            if '-' in first_sentence or '/' in first_sentence:
+                emotion = EMOTION.get_emotion(first_sentence)
+                print(emotion)
+            else:
+                need_read += 1
 
 
 ''''
@@ -129,12 +142,12 @@ def thread_function_2():
     while True:
         if generating:  # 触发进入阅读
             # 播放所有生成的音频文件
-            cnt = 1
+            cnt = 2
             while True:
                 filename = "./audio/" + "audio" + str(cnt) + ".mp3"
                 if os.path.exists(filename) and need_read:
                     print(sentences[cnt])
-                    MQTT.client.publish(topic="toUE", payload=sentences[cnt], qos=2)
+                    MQTT.client.publish(topic="cbb/TALK", payload=sentences[cnt], qos=2)
                     audio.play(filename)
                     need_read -= 1
                     # print("播放：" + filename)
@@ -143,13 +156,16 @@ def thread_function_2():
                     print("回答完毕")
                     break
                 elif need_read == 0 and generating is False and synthesising == 1:
-                    time.sleep(0.1)
+                    time.sleep(0.2)
                     # print("等待语音生成...")
                 else:
-                    time.sleep(0.1)
+                    time.sleep(0.2)
                     # print("没有完成，等待")
         break
 
 
 if __name__ == '__main__':
-    chat("Yi-34B-Chat", "你可以介绍一下以色列吗")
+    while 1:
+        question = input("请输入：\n")
+        chat("ERNIE-Bot-4", chat_text=question)
+        # chat("Yi-34B-Chat", chat_text=question)
