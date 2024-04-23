@@ -30,7 +30,15 @@ ask_model = {
 msgs = []
 
 
-def chat(model, chat_text):
+def chat(model, chat_text, volume, temperature: float = 0.95, top_p: float = 0.75):
+    """
+    :param volume: 播放音量
+    :param top_p: 影响输出文本的多样性，取值越大，生成文本的多样性越强
+    :param temperature:较高的数值会使输出更加随机，而较低的数值会使其更加集中和确定
+    :param model:使用的模型 ERNIE-Bot ERNIE-Bot-4 ERNIE-Bot-turbo Yi-34B-Chat
+    :param chat_text:对话的文本
+    :return: 无返回
+    """
     global need_read
 
     ask = copy.deepcopy(ask_model)
@@ -38,12 +46,15 @@ def chat(model, chat_text):
     msgs.append(ask)
     name = "小斌"
     resp = chat_comp.do(model=model, messages=msgs, stream=True,
-                        system=f"你是一个富有情感的机器人，叫做{name}，需要为用户解答任何问题，并且每次解答，在以下的心情中挑选一个输出在回答的最前面，心情的输出格式如下："
-                               "-/开心。、-/失落。、-/好奇。、-/害怕。、-/戏谑。、-/生气。")
+                        system=f"你是一个富有情感的机器人，叫做{name}，需要为用户解答任何问题，并且每次解答，有以下几个要求："
+                               "1.在以下的心情中挑选一个输出在每句话的最前面，心情的输出格式如下："
+                               "-/开心。、-/失落。、-/好奇。、-/害怕。、-/戏谑。、-/生气。"
+                               "2.输出数字请避免使用阿拉伯数字（比如‘7.1’输出为‘七点一’）"
+                        , temperature=temperature, top_p=top_p)
 
     # 创建线程对象
     thread1 = threading.Thread(target=thread_function_1, args=(resp,))
-    thread2 = threading.Thread(target=thread_function_2)
+    thread2 = threading.Thread(target=thread_function_2, args=(volume,))
     thread3 = threading.Thread(target=thread_function_3)
     # thread4 = threading.Thread(target=thread_function_4)
 
@@ -148,7 +159,7 @@ def thread_function_2():
                 if os.path.exists(filename) and need_read:
                     print(sentences[cnt])
                     MQTT.client.publish(topic="cbb/TALK", payload=sentences[cnt], qos=2)
-                    audio.play(filename)
+                    audio.play(filename, volume)
                     need_read -= 1
                     # print("播放：" + filename)
                     cnt += 1
@@ -167,5 +178,5 @@ def thread_function_2():
 if __name__ == '__main__':
     while 1:
         question = input("请输入：\n")
-        chat("ERNIE-Bot-4", chat_text=question)
+        chat("ERNIE-Bot", chat_text=question)
         # chat("Yi-34B-Chat", chat_text=question)

@@ -42,7 +42,14 @@ def post(refer_wav_path, refer_wav_text, text):
         print(response.text)
 
 
-def post_v2(refer_wav_path, refer_wav_text, text, top_k: int = 5, top_p: float = 1, temperature: float = 1):
+def post_v2(
+        refer_wav_path,
+        refer_wav_text,
+        text, top_k: int = 5,
+        top_p: float = 1,
+        temperature: float = 1,
+        speed_factor: float = 1.0
+):
     url_v2_tts = url + '/tts'
     # 设置URL和要发送的数据
     data = {
@@ -58,7 +65,7 @@ def post_v2(refer_wav_path, refer_wav_text, text, top_k: int = 5, top_p: float =
         "batch_size": 6,  # int.(optional) batch size for inference
         "batch_threshold": 0.75,  # float.(optional) threshold for batch splitting.
         "split_bucket": True,  # bool.(optional) whether to split the batch into multiple buckets.
-        "speed_factor": 1.0,  # float.(optional) control the speed of the synthesized audio.
+        "speed_factor": speed_factor,  # float.(optional) control the speed of the synthesized audio.
         "fragment_interval": 0.3,  # float.(optional) to control the interval of the audio fragment.
         "seed": -1,  # int.(optional) random seed for reproducibility.
         "media_type": "wav",  # str.(optional) media type of the output audio, support "wav", "raw", "ogg", "aac".

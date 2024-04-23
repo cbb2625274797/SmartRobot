@@ -4,15 +4,11 @@ import time
 import paho.mqtt.client as mqtt
 import threading
 
-HOST = "192.168.66.193"
-PORT = 1883
 # 创建一个MQTT客户端实例
 client = mqtt.Client("python1")
 
 
-def start_server():
-    # 指定.cmd文件的路径
-    cmd_file_path = 'E:/emqx4/bin/emqx.cmd'
+def start_server(cmd_file_path):
     arg1 = 'start'
     # 构建完整的命令字符串，包括参数
     command = '{cmd_file_path} {arg1} '
@@ -23,9 +19,7 @@ def start_server():
     return process
 
 
-def stop_server():
-    # 指定.cmd文件的路径
-    cmd_file_path = 'E:/emqx4/bin/emqx.cmd'
+def stop_server(cmd_file_path):
     arg1 = 'stop'
     # 构建完整的命令字符串，包括参数
     command = '{cmd_file_path} {arg1} '
@@ -36,15 +30,13 @@ def stop_server():
     return process
 
 
-def client_init():
+def client_init(host, port):
     # 绑定回调函数
     client.on_connect = on_connect
     client.on_message = on_message
 
-    # 如果需要用户名和密码，可以添加认证
-    # client.username_pw_set(username, password)
     # 连接到MQTT服务器
-    client.connect(HOST, 1883, 60)
+    client.connect(host, port, 60)
     # 开始循环，等待MQTT事件
     subscribe("cbb/TALK")
     subscribe("cbb/PYTHON")
@@ -57,25 +49,35 @@ def on_connect(client, userdata, flags, rc):
     print("Connected with result code {rc}")
 
 
-def subscribe(topic_name):
-    client.subscribe(topic_name)
-    print("subscribe:" + topic_name)
-
-
 def on_message(client, userdata, msg):
     print(msg.topic + ":" + msg.payload.decode("utf-8"))
     if msg.topic == "toPY":
         print("receive")
 
 
-def publish(topic, message, qos):
+def subscribe(topic_name):
+    client.subscribe(topic_name)
+    print("subscribe:" + topic_name)
+
+
+def publish(topic, message, qos: int = 1):
+    """
+    :param topic:发布主题
+    :param message:发布的消息
+    :param qos:QOS
+    :return:无返回
+    """
     client.publish(topic, message, qos=qos)
     print(f'publish{topic}:{message}')
 
 
 if __name__ == '__main__':
+    HOST = "192.168.21.193"
+    PORT = 1883
+
+
     def thread_function_1():
-        client_init()
+        client_init(HOST, PORT)
 
 
     def thread_function_2():

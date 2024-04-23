@@ -41,6 +41,7 @@ class PWM:
         wiringpi.wiringPiSetup()
         self.fd = wiringpi.wiringPiI2CSetupInterface(args.device, i2caddr)
         self.reset()
+        self.setPWMFreq(50)
 
     def write_byte(self, reg, byte):
         if wiringpi.wiringPiI2CWriteReg8(self.fd, reg, byte) < 0:
@@ -59,7 +60,7 @@ class PWM:
         self.write_byte(PCA9685_MODE1, 0x0)
 
     def setPWMFreq(self, freq: float):
-        print("调整频率" + str(freq))
+        # print("调整频率" + str(freq))
         freq *= 0.9
         # PCA9685的时钟频率是25MHz
         prescaleval = 25000000
@@ -86,24 +87,45 @@ class PWM:
         self.write_byte(num * 4 + LED0_OFF_L, off)
         self.write_byte(num * 4 + LED0_OFF_H, off >> 8)
 
-    def set_Angle(self, num, angle):
+    def set_Angle(self,
+                  num,
+                  angle: float
+                  ):
+        """
+        num通道转动到angle角度，最快
+        :param num:
+        :param angle:
+        :return:
+        """
         # print(f'{num}通道:{angle} 角度')
         # 匹配到对应位深度
         val = map_range(min(angle, 180))
-        val = round(val)
-        self.setPWM(num, 4095 - val, 0)
+        val_int = round(val)
+        self.setPWM(num, 4095 - val_int, 0)
 
-    def angle_switch(self, num, start_angle: float, stop_angle: float, speed: float):
+    def angle_switch(self,
+                     num,
+                     start_angle: float,
+                     stop_angle: float,
+                     speed: float
+                     ):
+        """
+        按照特定速度从start_angle转到stop_angle
+        :param num:通道编号
+        :param start_angle:
+        :param stop_angle:
+        :param speed:
+        :return:
+        """
         print(f'{num}通道从{start_angle}到{stop_angle}')
         self.set_Angle(num, start_angle)
         if start_angle < stop_angle:
-            float_array = np.arange(start_angle, stop_angle, speed)
             float_array = bezier.angle_bezier_clamped(start_angle, stop_angle, start_angle * 1.1, stop_angle * 0.8,
                                                       round(10 * abs(start_angle - stop_angle) / speed))
         else:
             float_array = bezier.angle_bezier_clamped(start_angle, stop_angle, start_angle * 0.75, stop_angle * 1.1,
                                                       round(10 * abs(start_angle - stop_angle) / speed))
-
+        # print(float_array)
         for i in float_array:
             self.set_Angle(num, i)
 
@@ -113,13 +135,16 @@ class PWM:
             for j in range(0, 16):
                 for i in range(0, 180):
                     self.set_Angle(j, i)
-                self.set_Angle(j, 90)
+                    # time.sleep(0.1)
+                    print(f"{j}通道{i}角度")
+                # self.set_Angle(j, 90)
 
 
 if __name__ == '__main__':
     pwm_ins1 = PWM()
     # pwm_ins1.test()
-    pwm_ins1.angle_switch(0, 90, 30, 4)
-    pwm_ins1.angle_switch(0, 30, 150, 3)
-    pwm_ins1.angle_switch(0, 150, 30, 3)
-    pwm_ins1.angle_switch(0, 30, 90, 4)
+    for j in range(0, 12, 4):
+        pwm_ins1.angle_switch(j, 90, 30, 2)
+        pwm_ins1.angle_switch(j, 30, 150, 3)
+        pwm_ins1.angle_switch(j, 150, 30, 3)
+        pwm_ins1.angle_switch(j, 30, 90, 2)

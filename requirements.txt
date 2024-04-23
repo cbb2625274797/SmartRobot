@@ -1,7 +1,5 @@
-baidu_aip==4.16.13
 numpy==1.26.4
 onnxruntime==1.17.1
-paho_mqtt==1.6.1
 pydub==0.25.1
 pygame==2.5.2
 pyttsx3==2.90
@@ -12,3 +10,4 @@ sounddevice==0.4.6
 transformers==4.32.0
 matplotlib==3.8.3
 paho-mqtt==1.6.1
+PyAutoGUI~=0.9.54

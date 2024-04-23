@@ -1,16 +1,19 @@
 from aip import AipSpeech
 import pygame
 import json
-import pyttsx3
+import speech_recognition as sr
+import pypinyin
 import sounddevice as sd
 from scipy.io.wavfile import write
 import GPT_SOVITS as SOVITS
 import numpy as np
+import datetime
 
 
 # 设置录音参数
 def record(duration, samplerate, filepath):
     # 使用sounddevice录制音频
+    global recording
     print("开始录音...")
     myrecording = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=1)
     sd.wait()  # 等待录音结束
@@ -23,7 +26,6 @@ def record(duration, samplerate, filepath):
     # 确保录音数据的位深度与WAV文件匹配
     if myrecording.dtype != wav_dtype:
         recording = (myrecording * (2 ** 15 - 1)).astype(wav_dtype)
-
         # 保存为WAV文件
     write(filepath, wav_fs, recording)
     print("录音已保存为 'output.wav'")
@@ -46,9 +48,12 @@ def get_file_content(filepath):
 def STT(filepath):
     return_value = client.asr(get_file_content(filepath), 'wav', 16000, {'dev_pid': 1537})
     # 识别文件
-    print(return_value)
-    print(return_value.get('result')[0])
-    return return_value.get('result')
+    # print(return_value)
+    try:
+        print(return_value.get('result')[0])
+        return return_value.get('result')
+    except Exception:
+        return ""
 
 
 def BD_TTS(text, filename):
@@ -62,10 +67,35 @@ def BD_TTS(text, filename):
             f.write(result)
 
 
-def PYTTS(text, filename):
-    engine = pyttsx3.init()
-    engine.say(text)
-    engine.runAndWait()
+def remove_element(lst, element):
+    while element in lst:
+        lst.remove(element)
+    return lst
+
+
+def contains_sublist(lst, sublist):
+    return any(lst[i:i + len(sublist)] == sublist for i in range(len(lst) - len(sublist) + 1))
+
+
+def recognize():
+    datetime1 = datetime.datetime.now()
+    audio_file = "./audio/recorded_audio.wav"
+    r = sr.Recognizer()
+    with sr.AudioFile(audio_file) as source:
+        audio = r.record(source)
+    try:
+        str = r.recognize_sphinx(audio, language="zh-CN")
+        pinyin = pypinyin.pinyin(str, style=pypinyin.NORMAL)
+        r = remove_element(pinyin, [' '])
+        if contains_sublist(r, [['bei'], ['jing']]):
+            return True
+        datetime2 = datetime.datetime.now()
+        print("识别耗时：", datetime2 - datetime1)
+        print("识别结果：", r)
+    except Exception as e:
+        print(e)
+        return False
+    return False
 
 
 def SOVITS_TTS(character: str, emotion: str, text, filename):
@@ -74,14 +104,15 @@ def SOVITS_TTS(character: str, emotion: str, text, filename):
         loaded_dict = json.load(f)
     refer_text = loaded_dict[emotion]
     refer_path = "./EmotionEngine/EmotionList/" + character + "/" + emotion + ".wav"
-    audio = SOVITS.post(refer_path, refer_text, text)
+    audio = SOVITS.post_v2(refer_path, refer_text, text)
     # 将WAV转换为MP3并保存
     audio.export(filename, format="mp3")
 
 
-def play(mp3_file_path):
+def play(mp3_file_path, volume: float = 1):
     # 初始化pygame音频模块
     pygame.mixer.init()
+    pygame.mixer.music.set_volume(volume)  # 设置为一半音量
     # 加载MP3文件
     pygame.mixer.music.load(mp3_file_path)
     # 播放MP3文件
@@ -94,6 +125,9 @@ def play(mp3_file_path):
 
 
 if __name__ == '__main__':
+    play("./audio/start.mp3", 1)
+    # print(STT("16k.wav"))
+    # SOVITS_TTS("hutao", "开心", "大家好，我是普通的TTS应用生成的音频", "GPTSOVITS.mp3")
     pass
     # record(5, 16000, "./audio/recorded_audio.wav")
 
