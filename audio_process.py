@@ -109,13 +109,13 @@ def SOVITS_TTS(character: str, emotion: str, text, filename):
     audio.export(filename, format="mp3")
 
 
-def play(mp3_file_path, volume: float = 1):
+def play(file_path, volume: float = 1):
     # 初始化pygame音频模块
     pygame.mixer.init()
     pygame.mixer.music.set_volume(volume)  # 设置为一半音量
-    # 加载MP3文件
-    pygame.mixer.music.load(mp3_file_path)
-    # 播放MP3文件
+    # 加载MP3、wav文件
+    pygame.mixer.music.load(file_path)
+    # 播放MP3、wav文件
     pygame.mixer.music.play()
     # 等待播放完成（如果需要）
     while pygame.mixer.music.get_busy():
@@ -125,7 +125,7 @@ def play(mp3_file_path, volume: float = 1):
 
 
 if __name__ == '__main__':
-    play("./audio/start.mp3", 1)
+    play("./audio/wakeup.wav")
     # print(STT("16k.wav"))
     # SOVITS_TTS("hutao", "开心", "大家好，我是普通的TTS应用生成的音频", "GPTSOVITS.mp3")
     pass

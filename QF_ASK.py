@@ -5,7 +5,7 @@ import audio_process as audio
 import time
 import re
 import copy
-import MQTT
+from main import ROBOT
 import EmotionEngine.EmotionJudge as EMOTION
 
 # 使用安全认证AK/SK鉴权，通过环境变量方式初始化;
@@ -30,11 +30,9 @@ ask_model = {
 msgs = []
 
 
-def chat(model, chat_text, volume, temperature: float = 0.95, top_p: float = 0.75):
+def chat(model, chat_text, father_robot: ROBOT):
     """
-    :param volume: 播放音量
-    :param top_p: 影响输出文本的多样性，取值越大，生成文本的多样性越强
-    :param temperature:较高的数值会使输出更加随机，而较低的数值会使其更加集中和确定
+    :param father_robot: 父机器人
     :param model:使用的模型 ERNIE-Bot ERNIE-Bot-4 ERNIE-Bot-turbo Yi-34B-Chat
     :param chat_text:对话的文本
     :return: 无返回
@@ -44,18 +42,18 @@ def chat(model, chat_text, volume, temperature: float = 0.95, top_p: float = 0.7
     ask = copy.deepcopy(ask_model)
     ask["content"] = chat_text
     msgs.append(ask)
-    name = "小斌"
+    name = father_robot.name
     resp = chat_comp.do(model=model, messages=msgs, stream=True,
                         system=f"你是一个富有情感的机器人，叫做{name}，需要为用户解答任何问题，并且每次解答，有以下几个要求："
                                "1.在以下的心情中挑选一个输出在每句话的最前面，心情的输出格式如下："
                                "-/开心。、-/失落。、-/好奇。、-/害怕。、-/戏谑。、-/生气。"
                                "2.输出数字请避免使用阿拉伯数字（比如‘7.1’输出为‘七点一’）"
-                        , temperature=temperature, top_p=top_p)
+                        , temperature=father_robot.chat_temperature, top_p=father_robot.chat_top_p)
 
     # 创建线程对象
     thread1 = threading.Thread(target=thread_function_1, args=(resp,))
-    thread2 = threading.Thread(target=thread_function_2, args=(volume,))
-    thread3 = threading.Thread(target=thread_function_3)
+    thread2 = threading.Thread(target=thread_function_2, args=(father_robot,))
+    thread3 = threading.Thread(target=thread_function_3, args=(father_robot,))
     # thread4 = threading.Thread(target=thread_function_4)
 
     # 生成音频文件
@@ -97,7 +95,7 @@ def thread_function_1(resp):
 
 
 # 第三线程用于分段+生成
-def thread_function_3():
+def thread_function_3(father_robot: ROBOT):
     global need_read
     global text
     global synthesising
@@ -124,7 +122,7 @@ def thread_function_3():
             synthesising = 1
             # print(first_sentence)
             try:
-                audio.SOVITS_TTS("paimon", emotion, first_sentence, filename)
+                audio.SOVITS_TTS(father_robot.sound_character, emotion, first_sentence, filename)
             except Exception as e:
                 # 错误处理逻辑，如打印错误信息、记录日志等
                 print(f"An error occurred: {e}")
@@ -145,7 +143,7 @@ def thread_function_4():
 
 
 # 定义第二个线程播放音频
-def thread_function_2():
+def thread_function_2(father_robot: ROBOT):
     global need_read
     global generating
     global sentences
@@ -158,8 +156,11 @@ def thread_function_2():
                 filename = "./audio/" + "audio" + str(cnt) + ".mp3"
                 if os.path.exists(filename) and need_read:
                     print(sentences[cnt])
-                    MQTT.client.publish(topic="cbb/TALK", payload=sentences[cnt], qos=2)
-                    audio.play(filename, volume)
+                    try:
+                        father_robot.MQTT_instance.publish(topic="cbb/TALK", message=sentences[cnt], qos=2)
+                    except Exception:
+                        print("MQTT发送失败")
+                    audio.play(filename, father_robot.volume)
                     need_read -= 1
                     # print("播放：" + filename)
                     cnt += 1
