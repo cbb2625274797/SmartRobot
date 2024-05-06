@@ -104,7 +104,7 @@ def SOVITS_TTS(character: str, emotion: str, text, filename):
         loaded_dict = json.load(f)
     refer_text = loaded_dict[emotion]
     refer_path = "./EmotionEngine/EmotionList/" + character + "/" + emotion + ".wav"
-    audio = SOVITS.post_v2(refer_path, refer_text, text)
+    audio = SOVITS.post_v2(refer_wav_path=refer_path, refer_wav_text=refer_text, text=text)
     # 将WAV转换为MP3并保存
     audio.export(filename, format="mp3")
 

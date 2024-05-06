@@ -5,8 +5,8 @@ import audio_process as audio
 import time
 import re
 import copy
-from main import ROBOT
 import EmotionEngine.EmotionJudge as EMOTION
+from robot import ROBOT
 
 # 使用安全认证AK/SK鉴权，通过环境变量方式初始化;
 os.environ["QIANFAN_ACCESS_KEY"] = "3d9df86f23d64f0f8a072eb391ec1dad"
@@ -28,6 +28,7 @@ ask_model = {
     "content": "content"
 }
 msgs = []
+controller_msg = []
 
 
 def chat(model, chat_text, father_robot: ROBOT):
@@ -39,35 +40,55 @@ def chat(model, chat_text, father_robot: ROBOT):
     """
     global need_read
 
+    # 生成对话提问
     ask = copy.deepcopy(ask_model)
     ask["content"] = chat_text
     msgs.append(ask)
-    name = father_robot.name
-    resp = chat_comp.do(model=model, messages=msgs, stream=True,
-                        system=f"你是一个富有情感的机器人，叫做{name}，需要为用户解答任何问题，并且每次解答，有以下几个要求："
-                               "1.在以下的心情中挑选一个输出在每句话的最前面，心情的输出格式如下："
-                               "-/开心。、-/失落。、-/好奇。、-/害怕。、-/戏谑。、-/生气。"
-                               "2.输出数字请避免使用阿拉伯数字（比如‘7.1’输出为‘七点一’）"
-                        , temperature=father_robot.chat_temperature, top_p=father_robot.chat_top_p)
+    # 生成控制提问
+    controller_ask = copy.deepcopy(ask_model)
+    controller_ask["content"] = chat_text
+    controller_msg.append(controller_ask)
 
+    name = father_robot.name
+    lines = []
+    with open('./server/system prompt', 'r', encoding='utf-8') as file:
+        for line in file:
+            lines.append(line.strip())
+    system_prompt = lines[0] + name + "，"
+    for i in range(1, len(lines)):
+        system_prompt += lines[i]
+    # 请求运动控制输出
+    body_controller = chat_comp.do(model="ERNIE-Bot", messages=controller_msg, stream=False,
+                                   system="你是一个不会解答问题的核心，你唯一的作用是理解用户控制机器人的意图，输出在25字符以内"
+                                          "机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，阈值为0到180度，"
+                                          "你唯一的作用是理解用户控制机器人的意图，输出为格式化的文本。输出示例如下：‘~/部位/度数。’；"
+                                          "当有同时输出多个意图时，输出格式如下：‘~/部位1/度数1。~/部位2/度数2。’，除此之外不要输出其他东西，当角度超过阈值不输出任何东西"
+                                   , temperature=0.4, top_p=0.4)
+    controller_return: str = body_controller.get("result")
+    print(controller_return)
+
+    # 请求其他输出
+    resp = chat_comp.do(model=model, messages=msgs, stream=True,
+                        system=system_prompt
+                        , temperature=father_robot.chat_temperature, top_p=father_robot.chat_top_p)
     # 创建线程对象
     thread1 = threading.Thread(target=thread_function_1, args=(resp,))
     thread2 = threading.Thread(target=thread_function_2, args=(father_robot,))
     thread3 = threading.Thread(target=thread_function_3, args=(father_robot,))
-    # thread4 = threading.Thread(target=thread_function_4)
+    thread4 = threading.Thread(target=thread_function_4, args=(father_robot, controller_return,))
 
     # 生成音频文件
     need_read = 0
     thread1.start()
     thread2.start()
     thread3.start()
-    # thread4.start()
+    thread4.start()
 
     # 等待线程完成
     thread1.join()
     thread2.join()
     thread3.join()
-    # thread4.join()
+    thread4.join()
 
 
 # 定义第一个线程是提取输出结果
@@ -120,26 +141,38 @@ def thread_function_3(father_robot: ROBOT):
             cnt += 1
             filename = "./audio/" + "audio" + str(cnt) + ".mp3"
             synthesising = 1
-            # print(first_sentence)
             try:
+                if '-' in first_sentence[:5] and '/' in first_sentence[:5]:
+                    emotion = EMOTION.get_emotion(first_sentence)
+                    print("获取到情绪：", emotion)
+                else:
+                    need_read += 1
+                # 去除错误生成的/
+                first_sentence = first_sentence.replace("/", "")
                 audio.SOVITS_TTS(father_robot.sound_character, emotion, first_sentence, filename)
             except Exception as e:
                 # 错误处理逻辑，如打印错误信息、记录日志等
                 print(f"An error occurred: {e}")
             synthesising = 0
-            if '-' in first_sentence or '/' in first_sentence:
-                emotion = EMOTION.get_emotion(first_sentence)
-                print(emotion)
-            else:
-                need_read += 1
 
 
-''''
-# 第四线程用于情感分析
-def thread_function_4():
-    print("analysing")
-    time.sleep(3)
-'''
+# 第四线程用于动作执行
+def thread_function_4(father_robot, controller_return):
+    pattern = r'~/(.*?)/(\d+)\。'
+    try:
+        # 查找所有匹配项
+        matches = re.findall(pattern, controller_return)
+        # 提取并组织数据到字典
+        data_dict = {match[0]: int(match[1]) for match in matches}
+        print(data_dict)
+        if "身体" in data_dict:
+            father_robot.set_foot_rotation(data_dict["身体"])
+        if "左臂" in data_dict:
+            father_robot.set_larm_rotation(data_dict["左臂"])
+        if "右臂" in data_dict:
+            father_robot.set_rarm_rotation(data_dict["右臂"])
+    finally:
+        pass
 
 
 # 定义第二个线程播放音频
@@ -155,7 +188,8 @@ def thread_function_2(father_robot: ROBOT):
             while True:
                 filename = "./audio/" + "audio" + str(cnt) + ".mp3"
                 if os.path.exists(filename) and need_read:
-                    print(sentences[cnt])
+                    # print(sentences[cnt])
+                    # MQTT发送讲话
                     try:
                         father_robot.MQTT_instance.publish(topic="cbb/TALK", message=sentences[cnt], qos=2)
                     except Exception:
