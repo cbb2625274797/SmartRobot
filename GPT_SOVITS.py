@@ -5,8 +5,9 @@ import requests
 from pydub import AudioSegment
 from io import BytesIO
 import json
+from main import sovits_server
 
-url = 'http://192.168.21.15:9880'
+url = sovits_server
 
 
 def post(refer_wav_path, refer_wav_text, text):
@@ -195,6 +196,7 @@ def set_character(character: int):
 
 if __name__ == '__main__':
     set_character(0)
+    exit()
     audio1 = post_v2("EmotionEngine/EmotionList/paimon/开心.wav",
                      "要不，我们两个也去看看吧，如果能帮上忙，就可以更早吃上万民堂的料理了",
                      "近日，多国外交部门及驻外使领馆发布公告，提醒本国公民关注当前中东安全局势，非必要不前往或谨慎前往以色列、伊朗等国。我驻以使馆提醒在以中国公民注意安全当地时间12"

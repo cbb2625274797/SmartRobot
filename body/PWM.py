@@ -1,8 +1,10 @@
-import wiringpi
-import numpy as np
+try:
+    import wiringpi
+except Exception as e:
+    print(e)
 import argparse
 import time
-import bezier
+from body import bezier
 
 parser = argparse.ArgumentParser(description='i2c')
 parser.add_argument("--device", type=str, default="/dev/i2c-2", help='specify the i2c node')
@@ -38,23 +40,33 @@ def map_range(value):
 
 class PWM:
     def __init__(self):
-        wiringpi.wiringPiSetup()
-        self.fd = wiringpi.wiringPiI2CSetupInterface(args.device, i2caddr)
-        self.reset()
-        self.setPWMFreq(50)
+        try:
+            wiringpi.wiringPiSetup()
+            self.fd = wiringpi.wiringPiI2CSetupInterface(args.device, i2caddr)
+        except Exception as e:
+            print(e)
+        finally:
+            self.reset()
+            self.setPWMFreq(50)
 
     def write_byte(self, reg, byte):
-        if wiringpi.wiringPiI2CWriteReg8(self.fd, reg, byte) < 0:
-            print("Error write byte to device")
-            return -1
+        try:
+            if wiringpi.wiringPiI2CWriteReg8(self.fd, reg, byte) < 0:
+                print("Error write byte to device")
+                return -1
+        except Exception as e:
+            print(e)
         return 0
 
     def read_byte(self, reg):
-        byte = wiringpi.wiringPiI2CReadReg8(self.fd, reg)
-        if byte < 0:
-            print("Error read byte from device")
-            return -1
-        return byte
+        try:
+            byte = wiringpi.wiringPiI2CReadReg8(self.fd, reg)
+            if byte < 0:
+                print("Error read byte from device")
+                return -1
+            return byte
+        except Exception as e:
+            print(e)
 
     def reset(self):
         self.write_byte(PCA9685_MODE1, 0x0)
@@ -71,15 +83,18 @@ class PWM:
         prescale = round(prescaleval)
         oldmode = self.read_byte(0)
 
-        # 设置MODE1寄存器为睡眠模式
-        newmode = (oldmode & 0x7F) | 0x10  # sleep
-        self.write_byte(0, newmode)  # go to sleep
-        self.write_byte(0XFE, prescale)  # set the prescaler
-        # print(prescale)
-        self.write_byte(0, oldmode)
-        time.sleep(0.005)
-        self.write_byte(0, oldmode | 0xa1)  # This sets the MODE1 register to turn on auto increment.
-        # print("now " + str(self.read_byte(0)))
+        try:
+            # 设置MODE1寄存器为睡眠模式
+            newmode = (oldmode & 0x7F) | 0x10  # sleep
+            self.write_byte(0, newmode)  # go to sleep
+            self.write_byte(0XFE, prescale)  # set the prescaler
+            # print(prescale)
+            self.write_byte(0, oldmode)
+            time.sleep(0.005)
+            self.write_byte(0, oldmode | 0xa1)  # This sets the MODE1 register to turn on auto increment.
+            # print("now " + str(self.read_byte(0)))
+        except Exception as e:
+            print(e)
 
     def setPWM(self, num, on, off):
         self.write_byte(num * 4 + LED0_ON_L, on)
@@ -143,7 +158,20 @@ class PWM:
 if __name__ == '__main__':
     pwm_ins1 = PWM()
     # pwm_ins1.test()
-    for j in range(0, 12, 4):
+    speed = 2
+    for j in range(90, 120):
+        pwm_ins1.angle_switch(0, j, j+1, speed)
+        pwm_ins1.angle_switch(4, j, j+1, speed)
+        pwm_ins1.angle_switch(8, j, j+1, speed)
+        pwm_ins1.angle_switch(12, j, j+1, speed)
+    time.sleep(2)
+    for j in range(120, 90, -1):
+        pwm_ins1.angle_switch(0, j, j-1, speed)
+        pwm_ins1.angle_switch(4, j, j-1, speed)
+        pwm_ins1.angle_switch(8, j, j-1, speed)
+        pwm_ins1.angle_switch(12, j, j-1, speed)
+    time.sleep(10)
+    for j in range(0, 13, 4):
         pwm_ins1.angle_switch(j, 90, 30, 2)
         pwm_ins1.angle_switch(j, 30, 150, 3)
         pwm_ins1.angle_switch(j, 150, 30, 3)

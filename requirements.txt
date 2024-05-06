@@ -2,7 +2,6 @@ numpy==1.26.4
 onnxruntime==1.17.1
 pydub==0.25.1
 pygame==2.5.2
-pyttsx3==2.90
 qianfan==0.3.4
 Requests==2.31.0
 scipy==1.12.0
@@ -11,3 +10,4 @@ transformers==4.32.0
 matplotlib==3.8.3
 paho-mqtt==1.6.1
 PyAutoGUI~=0.9.54
+pypinyin~=0.51.0

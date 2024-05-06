@@ -3,8 +3,8 @@ import time
 
 import paho.mqtt.client as mqtt
 import threading
-
-from main import ROBOT
+import webUI
+from GPT_SOVITS import set_character
 
 
 def start_server():
@@ -30,20 +30,57 @@ def stop_server():
 
 
 class new_class:
-    def __init__(self, father_robot: ROBOT = None):
+    def __init__(self, host="192.168.21.193", port=1883):
         # 创建一个MQTT客户端实例
+        self.drag = False
         self.client = mqtt.Client("python1")
-        self.father_robot = father_robot
+        self.father_robot = None
+        self.host = host
+        self.port = port
 
-    def client_init(self, host, port):
+    def run(self):
         # 绑定回调函数
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
         # 连接到MQTT服务器
-        self.client.connect(host, port, 60)
+        self.client.connect(self.host, self.port, 10)
+
+        self.subscribe("sound/character")
+        self.subscribe("sound/temperature")
+        self.subscribe("sound/top_k")
+        self.subscribe("sound/speed")
+        self.subscribe("chat/model")
+        self.subscribe("chat/temperature")
+        self.subscribe("chat/top_p")
+        self.subscribe("motion/larm")
+        self.subscribe("motion/rarm")
+        self.subscribe("motion/leg")
+        self.subscribe("motion/foot")
+        self.subscribe("other/wake_time")
+        self.subscribe("other/volume")
+        self.subscribe("other/drag")
+
+        # 线程控制
+        thread1 = threading.Thread(target=self.thread_function_1, args=())
+        thread1.start()
+        while True:
+            while self.drag:
+                thread2 = threading.Thread(target=self.thread_function_2, args=())
+                thread2.start()
+                thread2.join()
+            time.sleep(0.02)
+
+    def thread_function_1(self):
+        print("thread_function_1")
         # 开始循环，等待MQTT事件
         self.client.loop_forever()
+
+    def thread_function_2(self):
+        while self.drag:
+            self.client.publish("other/x", webUI.mouse_location().x, qos=0)
+            self.client.publish("other/y", webUI.mouse_location().y, qos=0)
+            time.sleep(0.04)
 
     # 当连接到MQTT服务器时的回调函数
     def on_connect(self, client, userdata, flags, rc):
@@ -54,26 +91,80 @@ class new_class:
     # sound : character  temperature top_k speed
     # chat: model temperature top_p
     # other: wake_time volume
+    # motion: larm rarm leg foot
     def on_message(self, client, userdata, msg):
         print(msg.topic + ":" + msg.payload.decode("utf-8"))
         if msg.topic == "sound/character":
-            self.father_robot.sound_character = msg.payload.decode("utf-8")
+            temp = msg.payload.decode("utf-8")
+            if self.father_robot.sound_character != temp:
+                self.father_robot.sound_character = temp
+            if temp == "小派":
+                set_character(0)
+            elif temp == "芙芙":
+                set_character(1)
+            elif temp == "小胡":
+                set_character(2)
+            elif temp == "绫华":
+                set_character(3)
+            elif temp == "小叶":
+                set_character(4)
         elif msg.topic == "sound/temperature":
-            self.father_robot.sound_temperature = float(msg.payload.decode("utf-8"))
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.sound_temperature != temp:
+                self.father_robot.sound_temperature = temp
         elif msg.topic == "sound/top_k":
-            self.father_robot.sound_top_k = float(msg.payload.decode("utf-8"))
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.sound_top_k != temp:
+                self.father_robot.sound_top_k = temp
         elif msg.topic == "sound/speed":
-            self.father_robot.sound_speed = float(msg.payload.decode("utf-8"))
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.sound_speed != temp:
+                self.father_robot.sound_speed = temp
         elif msg.topic == "chat/model":
-            self.father_robot.model = msg.payload.decode("utf-8")
+            temp = msg.payload.decode("utf-8")
+            if self.father_robot.model != temp:
+                self.father_robot.model = temp
         elif msg.topic == "chat/temperature":
-            self.father_robot.chat_temperature = float(msg.payload.decode("utf-8"))
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.chat_temperature != temp:
+                self.father_robot.chat_temperature = temp
         elif msg.topic == "chat/top_p":
-            self.father_robot.chat_top_p = float(msg.payload.decode("utf-8"))
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.chat_top_p != temp:
+                self.father_robot.chat_top_p = temp
+        elif msg.topic == "motion/larm":
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.larm != temp:
+                self.father_robot.set_larm_rotation(temp)
+                time.sleep(0.2)
+        elif msg.topic == "motion/rarm":
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.rarm != temp:
+                self.father_robot.set_rarm_rotation(temp)
+                time.sleep(0.2)
+        elif msg.topic == "motion/leg":
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.body != temp:
+                self.father_robot.set_body_rotation(temp)
+                time.sleep(0.2)
+        elif msg.topic == "motion/foot":
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.foot != temp:
+                self.father_robot.set_foot_rotation(temp)
+                time.sleep(0.2)
         elif msg.topic == "other/wake_time":
-            self.father_robot.wake_duration = int(msg.payload.decode("utf-8"))
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.wake_time != temp:
+                self.father_robot.wake_time = temp
         elif msg.topic == "other/volume":
-            self.father_robot.volume = float(msg.payload.decode("utf-8"))
+            temp = float(msg.payload.decode("utf-8"))
+            if self.father_robot.volume != temp:
+                self.father_robot.volume = temp
+        elif msg.topic == "other/drag":
+            if msg.payload.decode("utf-8") == "1":
+                self.drag = True
+            else:
+                self.drag = False
 
     def subscribe(self, topic_name):
         self.client.subscribe(topic_name)
@@ -97,7 +188,7 @@ if __name__ == '__main__':
 
 
     def thread_function_1():
-        instance.client_init(HOST, PORT)
+        instance.client_init()
 
 
     def thread_function_2():
