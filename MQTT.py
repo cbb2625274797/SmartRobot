@@ -7,10 +7,10 @@ import webUI
 from audio.GPT_SOVITS import set_character
 
 
-def start_server():
+def start_server(cmd_file_path):
     arg1 = 'start'
     # 构建完整的命令字符串，包括参数
-    command = '{cmd_file_path} {arg1} '
+    command = f'{cmd_file_path} {arg1} '
     # 使用subprocess运行.cmd文件
     process = subprocess.Popen(command, shell=True)
     print("MQTT服务器开启:")
@@ -18,10 +18,10 @@ def start_server():
     return process
 
 
-def stop_server():
+def stop_server(cmd_file_path):
     arg1 = 'stop'
     # 构建完整的命令字符串，包括参数
-    command = '{cmd_file_path} {arg1} '
+    command = f'{cmd_file_path} {arg1} '
     # 使用subprocess运行.cmd文件
     process = subprocess.Popen(command, shell=True)
     print("MQTT服务器关闭:")

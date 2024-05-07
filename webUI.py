@@ -24,35 +24,3 @@ def mouse_location():
     """
     location = pyautogui.position()
     return location
-
-
-if __name__ == '__main__':
-
-    running = 99
-
-
-    def run(running):
-        while running:
-            running -= 1
-            time.sleep(0.1)
-            print(running)
-
-
-    def thread_function_1():
-        run(running)
-
-
-    def thread_function_2():
-        while 1:
-            time.sleep(1)
-            print(mouse_location())
-
-
-    thread1 = threading.Thread(target=thread_function_1)
-    thread2 = threading.Thread(target=thread_function_2)
-
-    thread1.start()
-    thread2.start()
-    thread1.join()
-    thread1 = threading.Thread(target=thread_function_1)
-    thread1.start()

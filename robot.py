@@ -1,5 +1,4 @@
 import os
-import time
 
 from audio import audio_process as AU
 import threading
@@ -27,7 +26,7 @@ def cleanup():
                 except OSError as e:
                     # 打印删除失败的原因
                     print(f"无法删除 {file_path}。原因: {e.strerror}")
-        print("缓存路径清空")
+    print("缓存路径清空")
     return 0
 
 
