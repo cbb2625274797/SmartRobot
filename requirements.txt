@@ -2,7 +2,7 @@ numpy==1.26.4
 onnxruntime==1.17.1
 pydub==0.25.1
 pygame==2.5.2
-qianfan==0.3.4
+qianfan==0.3.10
 Requests==2.31.0
 scipy==1.12.0
 sounddevice==0.4.6

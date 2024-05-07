@@ -1,8 +1,9 @@
+import os
+import subprocess
 import threading
 import time
-import subprocess
+
 import MQTT
-import os
 
 
 class SERVER:
@@ -44,7 +45,7 @@ class SERVER:
         # 使用subprocess.run()方法执行bat文件
         try:
             subprocess.run([self.pixel_bat_path], check=True, shell=True)
-            print("pixelstreaming 文件关闭。")
+            print("pixel streaming 文件关闭。")
         except subprocess.CalledProcessError as e:
             print(f"执行批处理文件时发生错误：{e}")
 

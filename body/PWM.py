@@ -4,6 +4,7 @@ except Exception as e:
     print(e)
 import argparse
 import time
+
 from body import bezier
 
 parser = argparse.ArgumentParser(description='i2c')

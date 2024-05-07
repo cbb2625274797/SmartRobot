@@ -1,8 +1,8 @@
 import logging
 
+import numpy as np
 import onnxruntime
 from transformers import BertTokenizer
-import numpy as np
 
 
 class EmotionEngine:

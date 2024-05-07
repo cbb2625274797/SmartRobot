@@ -1,13 +1,15 @@
-from aip import AipSpeech
-import pygame
+import datetime
 import json
-import speech_recognition as sr
+
+import numpy as np
+import pygame
 import pypinyin
 import sounddevice as sd
+import speech_recognition as sr
+from aip import AipSpeech
 from scipy.io.wavfile import write
+
 from audio import GPT_SOVITS as SOVITS
-import numpy as np
-import datetime
 
 
 # 设置录音参数

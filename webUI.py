@@ -1,7 +1,7 @@
-import threading
-import webbrowser
-import pyautogui
 import time
+import webbrowser
+
+import pyautogui
 
 
 def open_UI(url):

@@ -1,5 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def angle_bezier_clamped(start_angle, end_angle, control1, control2, num_points: int):

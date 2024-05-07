@@ -1,8 +1,9 @@
 import subprocess
+import threading
 import time
 
 import paho.mqtt.client as mqtt
-import threading
+
 import webUI
 from audio.GPT_SOVITS import set_character
 

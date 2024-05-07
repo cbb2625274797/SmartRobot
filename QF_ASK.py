@@ -1,11 +1,13 @@
-import os
-import threading
-import qianfan
-from audio import audio_process as audio
-import time
-import re
 import copy
+import os
+import re
+import threading
+import time
+
+import qianfan
+
 import EmotionEngine.EmotionJudge as EMOTION
+from audio import audio_process as audio
 from robot import ROBOT
 
 # 使用安全认证AK/SK鉴权，通过环境变量方式初始化;

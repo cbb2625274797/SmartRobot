@@ -1,10 +1,11 @@
 import os
-
-from audio import audio_process as AU
-import threading
 import platform
-import webUI as UI
+import threading
+
 import pypinyin
+
+import webUI as UI
+from audio import audio_process as AU
 from body import PWM
 
 
