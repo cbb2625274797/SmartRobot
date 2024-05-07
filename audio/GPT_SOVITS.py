@@ -109,12 +109,12 @@ def commanmd(command: str):
         # 发送GET请求
         response = requests.get(url_command)
     except Exception:
-        if command == "restart":
-            time.sleep(12)
-            print("重启成功")
-        elif command == "exit":
-            exit(0)
-            print("无法运行时退出！")
+        pass
+    time.sleep(12)
+    if command == "restart":
+        print("重启成功")
+    elif command == "exit":
+        print("无法运行时退出！")
 
 
 def set_gpt_weights(character: int):
@@ -191,6 +191,7 @@ def set_character(character: int):
 
     set_gpt_weights(character)
     set_sovits_weights(character)
+    commanmd("restart")
     print("切换结束！")
 
 
@@ -223,6 +224,6 @@ if __name__ == '__main__':
         "戏谑": "大姐头，对这种事情恐怕是毫无兴趣，我便想着不如请你来体会一番。"
     }
     # 将字典保存到JSON文件中
-    with open('EmotionEngine/EmotionList/wanye/情绪参考文本.json', 'w') as f:
+    with open('../EmotionEngine/EmotionList/wanye/情绪参考文本.json', 'w') as f:
         json.dump(my_dict, f)
     exit(0)

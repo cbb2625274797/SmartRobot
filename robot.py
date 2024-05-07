@@ -1,8 +1,34 @@
-import audio_process as AU
+import os
+import time
+
+from audio import audio_process as AU
 import threading
+import platform
 import webUI as UI
 import pypinyin
 from body import PWM
+
+
+def cleanup():
+    """
+    删除缓存目录的文件
+    :return:0/1
+    """
+    directory = "./audio"
+    # 遍历文件列表并删除每个文件
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            # 检查文件扩展名是否为.mp3
+            if file.endswith(".mp3"):
+                file_path = os.path.join(root, file)
+                try:
+                    # 删除文件
+                    os.remove(file_path)
+                except OSError as e:
+                    # 打印删除失败的原因
+                    print(f"无法删除 {file_path}。原因: {e.strerror}")
+        print("缓存路径清空")
+    return 0
 
 
 def contains_sublist(lst, sublist):
@@ -94,6 +120,45 @@ class ROBOT:
         self.rarm = target_angle
         return True
 
+    def set_chat_model(self, model: str):
+        """
+        设置大模型
+        :param model:大模型种类。参考：https://cloud.baidu.com/doc/WENXINWORKSHOP/s/xlmokikxe
+        :return:
+        """
+        print("切换大模型：", model)
+        self.model = model
+        try:
+            AU.SOVITS_TTS(self.sound_character, "开心", "切换大模型成功,可以继续对话了", "./audio/switch.mp3")
+            AU.play("./audio/switch.mp3", self.volume)
+        except Exception as e:
+            print(e)
+        return 0
+
+    def set_sound_model(self, character_code: int):
+        """
+        设置声音模型
+        :param character_code:角色:0-paimon 1-funingna 2-hutao 3-shenli 4-wanye
+        :return:
+        """
+        if character_code == 0:
+            self.sound_character = "paimon"
+        elif character_code == 1:
+            self.sound_character = "funingna"
+        elif character_code == 2:
+            self.sound_character = "hutao"
+        elif character_code == 3:
+            self.sound_character = "shenli"
+        elif character_code == 4:
+            self.sound_character = "wanye"
+
+        try:
+            AU.SOVITS_TTS(self.sound_character, "开心", "切换语音模型成功,可以继续对话了", "./audio/switch.mp3")
+            AU.play("./audio/switch.mp3", self.volume)
+        except Exception as e:
+            print(e)
+        return 0
+
     def thread_function_1(self):
         """
         进行大模型对话的操作
@@ -109,6 +174,7 @@ class ROBOT:
                     if contains_sublist(pinyin, pypinyin.pinyin(self.name, style=pypinyin.NORMAL)):
                         sleep = False
                 elif not sleep:
+                    cleanup()
                     AU.play("./audio/wakeup.wav", self.volume)  # 播放提示音
                     AU.record(5, 16000, filepath)
                     question = AU.STT(filepath)[0]
@@ -117,7 +183,9 @@ class ROBOT:
                         sleep = True
         else:
             while True:
+                cleanup()
                 input("按回车继续...")  # 这里程序会暂停，等待用户按下回车
+                AU.play("./audio/wakeup.wav", self.volume)  # 播放提示音
                 question = input("请输入你的提问:\n")
                 self.QF.chat(self.model, question, father_robot=self)
 
@@ -128,11 +196,9 @@ class ROBOT:
         :return:0/1
         """
         web_site = "http://" + self.host
-        UI.open_UI(web_site)
+        system_name = platform.system().lower()
+        if system_name == "windows":
+            print("当前系统：", system_name, "，不需要开启webUI")
+        else:
+            UI.open_UI(web_site)
         return 0
-
-
-if __name__ == '__main__':
-    host = "192.168.21.193"
-    ROBOT_ins = ROBOT("ERNIE-Bot", host, mode="text")
-    ROBOT_ins.run()

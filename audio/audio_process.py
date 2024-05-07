@@ -5,7 +5,7 @@ import speech_recognition as sr
 import pypinyin
 import sounddevice as sd
 from scipy.io.wavfile import write
-import GPT_SOVITS as SOVITS
+from audio import GPT_SOVITS as SOVITS
 import numpy as np
 import datetime
 
@@ -79,7 +79,7 @@ def contains_sublist(lst, sublist):
 
 def recognize():
     datetime1 = datetime.datetime.now()
-    audio_file = "./audio/recorded_audio.wav"
+    audio_file = "recorded_audio.wav"
     r = sr.Recognizer()
     with sr.AudioFile(audio_file) as source:
         audio = r.record(source)
@@ -125,7 +125,7 @@ def play(file_path, volume: float = 1):
 
 
 if __name__ == '__main__':
-    play("./audio/wakeup.wav")
+    play("wakeup.wav")
     # print(STT("16k.wav"))
     # SOVITS_TTS("hutao", "开心", "大家好，我是普通的TTS应用生成的音频", "GPTSOVITS.mp3")
     pass

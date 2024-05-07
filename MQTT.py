@@ -4,7 +4,7 @@ import time
 import paho.mqtt.client as mqtt
 import threading
 import webUI
-from GPT_SOVITS import set_character
+from audio.GPT_SOVITS import set_character
 
 
 def start_server():
@@ -44,13 +44,13 @@ class new_class:
         self.client.on_message = self.on_message
 
         # 连接到MQTT服务器
-        self.client.connect(self.host, self.port, 10)
+        self.client.connect(self.host, self.port, 20)
 
-        self.subscribe("sound/character")
+        self.subscribe("sound/character", 2)
         self.subscribe("sound/temperature")
         self.subscribe("sound/top_k")
         self.subscribe("sound/speed")
-        self.subscribe("chat/model")
+        self.subscribe("chat/model", 2)
         self.subscribe("chat/temperature")
         self.subscribe("chat/top_p")
         self.subscribe("motion/larm")
@@ -59,7 +59,7 @@ class new_class:
         self.subscribe("motion/foot")
         self.subscribe("other/wake_time")
         self.subscribe("other/volume")
-        self.subscribe("other/drag")
+        self.subscribe("other/drag", 2)
 
         # 线程控制
         thread1 = threading.Thread(target=self.thread_function_1, args=())
@@ -72,7 +72,6 @@ class new_class:
             time.sleep(0.02)
 
     def thread_function_1(self):
-        print("thread_function_1")
         # 开始循环，等待MQTT事件
         self.client.loop_forever()
 
@@ -85,7 +84,7 @@ class new_class:
     # 当连接到MQTT服务器时的回调函数
     def on_connect(self, client, userdata, flags, rc):
         # 订阅一个或多个主题
-        print("Connected with result code {rc}")
+        print(f"Connected with result code {rc}")
 
     # 主题：
     # sound : character  temperature top_k speed
@@ -95,19 +94,10 @@ class new_class:
     def on_message(self, client, userdata, msg):
         print(msg.topic + ":" + msg.payload.decode("utf-8"))
         if msg.topic == "sound/character":
-            temp = msg.payload.decode("utf-8")
+            temp = int(msg.payload.decode("utf-8"))
             if self.father_robot.sound_character != temp:
-                self.father_robot.sound_character = temp
-            if temp == "小派":
-                set_character(0)
-            elif temp == "芙芙":
-                set_character(1)
-            elif temp == "小胡":
-                set_character(2)
-            elif temp == "绫华":
-                set_character(3)
-            elif temp == "小叶":
-                set_character(4)
+                set_character(temp)
+                self.father_robot.set_sound_model(temp)
         elif msg.topic == "sound/temperature":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.sound_temperature != temp:
@@ -123,7 +113,14 @@ class new_class:
         elif msg.topic == "chat/model":
             temp = msg.payload.decode("utf-8")
             if self.father_robot.model != temp:
-                self.father_robot.model = temp
+                if temp == "ERNIE-Bot-4":
+                    self.father_robot.set_chat_model("ERNIE-4.0-8K")
+                elif temp == "ERNIE-Bot-3.5":
+                    self.father_robot.set_chat_model("ERNIE-3.5-4K-0205")
+                elif temp == "ERNIE-Bot-turbo":
+                    self.father_robot.set_chat_model("ERNIE-Lite-8K")
+                elif temp == "Yi-34B-Chat":
+                    self.father_robot.set_chat_model("Yi-34B-Chat")
         elif msg.topic == "chat/temperature":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.chat_temperature != temp:
@@ -166,8 +163,8 @@ class new_class:
             else:
                 self.drag = False
 
-    def subscribe(self, topic_name):
-        self.client.subscribe(topic_name)
+    def subscribe(self, topic_name, qos=0):
+        self.client.subscribe(topic_name, qos=qos)
         print("subscribe:" + topic_name)
 
     def publish(self, topic, message, qos: int = 1):
@@ -179,27 +176,3 @@ class new_class:
         """
         self.client.publish(topic, message, qos=qos)
         print('publish', topic, ":", message)
-
-
-if __name__ == '__main__':
-    HOST = "192.168.21.193"
-    PORT = 1883
-    instance = new_class()
-
-
-    def thread_function_1():
-        instance.client_init()
-
-
-    def thread_function_2():
-        time.sleep(1)
-        while 1:
-            message = input("请输入：")
-            instance.publish('cbb/TALK', message, qos=1)
-
-
-    thread1 = threading.Thread(target=thread_function_1)
-    thread2 = threading.Thread(target=thread_function_2)
-
-    thread1.start()
-    thread2.start()
