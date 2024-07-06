@@ -1,4 +1,5 @@
 import threading
+import time
 
 import MQTT
 import robot
@@ -22,17 +23,18 @@ class orangepi_server:
     def run(self):
         self.thread2.start()
         self.thread1.start()
-
-        self.thread1.join()
+        time.sleep(5)
         self.ROBOT_instance.MQTT_instance = self.MQTT_instance
         self.MQTT_instance.father_robot = self.ROBOT_instance
+        print("初始化完成")
 
     def thread_function_1(self):
         """
         新建机器人
         :return:
         """
-        self.ROBOT_instance = robot.ROBOT("ERNIE-3.5-4K-0205", host=MQTT_server, mode="text")
+        # self.ROBOT_instance = robot.ROBOT("ERNIE-3.5-4K-0205", host=MQTT_server, mode="text")·
+        self.ROBOT_instance = robot.ROBOT("ERNIE-3.5-4K-0205", host=MQTT_server, mode="audio")
         self.ROBOT_instance.run()
 
     def thread_function_2(self):
@@ -44,9 +46,9 @@ class orangepi_server:
         self.MQTT_instance.run()
 
 
-sovits_server = 'http://192.168.215.15:9880'
-UI_server = 'http://192.168.215.15:8080'
-MQTT_server = "192.168.215.15"
+sovits_server = 'http://192.168.197.193:9880'
+UI_server = 'http://192.168.197.193:8080'
+MQTT_server = "192.168.197.193"
 
 if __name__ == '__main__':
     # 运行

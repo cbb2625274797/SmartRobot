@@ -34,8 +34,11 @@ class SERVER:
         EMQX（负责MQTT的通信）
         :return:
         """
-        self.MQTT_start()
-        # MQTT.client_init(self.host, self.port)
+        try:
+            self.MQTT_start()
+            # MQTT.client_init(self.host, self.port)
+        except Exception as e:
+            print(f"MQTT服务器启动失败：{e}")
 
     def thread_function_3(self):
         """
@@ -47,7 +50,7 @@ class SERVER:
             subprocess.run([self.pixel_bat_path], check=True, shell=True)
             print("pixel streaming 文件关闭。")
         except subprocess.CalledProcessError as e:
-            print(f"执行批处理文件时发生错误：{e}")
+            print(f"视频流送服务器启动失败：{e}")
 
     def thread_function_4(self):
         """
@@ -55,26 +58,25 @@ class SERVER:
         :return:
         """
         # 定义要切换到的新路径
-        new_path = "G:/AI/GPT-SoVITS-beta0306"  # 请将此路径替换为你想切换到的实际路径
+        new_path = os.path.dirname(sovits_bat_path)  # 请将此路径替换为你想切换到的实际路径
         # 尝试切换工作目录
         try:
             os.chdir(new_path)
-        except FileNotFoundError:
-            print(f"错误：路径 {new_path} 不存在，请检查路径是否正确。")
+        except Exception as e:
+            print(e)
 
         # 使用subprocess.run()方法执行bat文件
         try:
             subprocess.run([self.sovits_bat_path], check=True, shell=True)
             print("GPT-SOVITS 服务器关闭。")
         except subprocess.CalledProcessError as e:
-            print(f"执行批处理文件时发生错误：{e}")
+            print(f"音频服务器启动失败：{e}")
 
     def thread_function_5(self):
         """
         视频主体
         :return:
         """
-        time.sleep(5)
         # 打开UI可执行文件
         args = [
             "-AudioMixer",
@@ -96,6 +98,7 @@ class SERVER:
         self.thread1.start()
         self.thread3.start()
         self.thread4.start()
+        time.sleep(10)
         self.thread5.start()
 
     def MQTT_start(self):
@@ -110,10 +113,12 @@ class SERVER:
 
 
 if __name__ == '__main__':
-    MQTT_server_path = r"E:/emqx4/bin/emqx.cmd"
-    pixel_bat_path = r"G:/SMART_ROBOT/PixelStreamingInfrastructure-UE5.3/SignallingWebServer/runAWS_WithTURN.bat"
-    sovits_bat_path = r"G:/AI/GPT-SoVITS-beta0306/开启v2接口服务.bat"
-    game_exe_path = "G:/SMART_ROBOT/Windows/SMART_ROBOT.exe"
+    project_path = "E:/project/"
+
+    MQTT_server_path = project_path+"SMART_ROBOT/emqx4/bin/emqx.cmd"
+    pixel_bat_path = project_path+"SMART_ROBOT/PixelStreamingInfrastructure-UE5.3/SignallingWebServer/runAWS_WithTURN.bat"
+    sovits_bat_path = project_path+"GPT-SoVITS-beta0306/开启v2接口服务.bat"
+    game_exe_path = project_path+"SMART_ROBOT/Windows/SMART_ROBOT.exe"
 
     # 开启
     server_ins = SERVER(MQTT_server_path, pixel_bat_path, sovits_bat_path, game_exe_path)

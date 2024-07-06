@@ -1,5 +1,5 @@
 import time
-import webbrowser
+import subprocess
 
 import pyautogui
 
@@ -10,10 +10,15 @@ def open_UI(url):
     :param url:地址
     :return:0/1
     """
-    webbrowser.open_new(url)
-    time.sleep(2)
-    pyautogui.press('F11')
-    pyautogui.moveTo(400, 300)
+    try:
+        command = f"su - orangepi -c 'chromium-browser {url}'"
+        subprocess.run(command, shell=True, stdout=subprocess.PIPE)
+    except Exception:
+        pass
+    pyautogui.moveTo(400, 200)
+    time.sleep(5)
+    pyautogui.click()
+    pyautogui.hotkey('F11')
     return 0
 
 

@@ -1,11 +1,13 @@
-import datetime
 import json
+import time
+import wave
 
+import librosa
 import numpy as np
+import pyaudio
 import pygame
-import pypinyin
 import sounddevice as sd
-import speech_recognition as sr
+import webrtcvad
 from aip import AipSpeech
 from scipy.io.wavfile import write
 
@@ -31,6 +33,75 @@ def record(duration, samplerate, filepath):
         # 保存为WAV文件
     write(filepath, wav_fs, recording)
     print("录音已保存为 'output.wav'")
+
+
+def record_until_silence(duration, samplerate: int, filepath, max_time=10):
+    # 初始化参数
+    THRESHOLD_SECONDS = duration  # 静音持续时间，超过这个时间就停止录音
+    CHUNK_SIZE = 160  # 每次读取的样本数量
+    FORMAT = pyaudio.paInt16  # 格式
+    CHANNELS = 1  # 单声道
+    RATE: int = samplerate  # 采样率
+    VAD_MODE = 1  # webrtcvad的模式，3是最严格的模式
+    # 初始化PyAudio
+    p = pyaudio.PyAudio()
+
+    # 创建WebRTC的VAD对象
+    vad = webrtcvad.Vad(VAD_MODE)
+
+    # 打开音频流
+    stream = p.open(format=FORMAT,
+                    channels=CHANNELS,
+                    rate=RATE,
+                    input=True,
+                    frames_per_buffer=CHUNK_SIZE)
+
+    # 初始化变量
+    frames = []
+    start_time = time.time()
+    last_speech_time = start_time
+
+    while True:
+        # 读取音频数据
+        data = stream.read(CHUNK_SIZE)
+
+        # 将数据转换为numpy数组
+        frame = np.frombuffer(data, dtype=np.int16)
+
+        # 运行VAD
+        if vad.is_speech(frame.tobytes(), RATE):
+            last_speech_time = time.time()
+            print(last_speech_time)
+
+        # 检查是否超过了静音阈值
+        if time.time() - last_speech_time > THRESHOLD_SECONDS:
+            print("静音时间超过阈值，停止录音")
+            # 保存语音帧
+            frames.append(frame)
+            return True
+            break
+        elif time.time() - start_time > max_time:
+            # 保存语音帧
+            frames.append(frame)
+            print("录音时间超过阈值，停止录音")
+            return False
+            break
+
+    # 停止录音
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
+    # 将所有帧合并成一个大的numpy数组
+    audio_data = np.concatenate(frames, axis=0)
+
+    with wave.open(filepath, 'wb') as wave_file:
+        FORMAT = 2
+        wave_file.setparams((CHANNELS, FORMAT, RATE, len(audio_data), 'NONE', 'not compressed'))
+        wave_file.writeframes(audio_data.astype(np.int16).tobytes())
+
+    # 返回音频数据
+    return audio_data, RATE
 
 
 """ 你的 APPID AK SK """
@@ -79,25 +150,34 @@ def contains_sublist(lst, sublist):
     return any(lst[i:i + len(sublist)] == sublist for i in range(len(lst) - len(sublist) + 1))
 
 
-def recognize():
-    datetime1 = datetime.datetime.now()
-    audio_file = "recorded_audio.wav"
-    r = sr.Recognizer()
-    with sr.AudioFile(audio_file) as source:
-        audio = r.record(source)
-    try:
-        str = r.recognize_sphinx(audio, language="zh-CN")
-        pinyin = pypinyin.pinyin(str, style=pypinyin.NORMAL)
-        r = remove_element(pinyin, [' '])
-        if contains_sublist(r, [['bei'], ['jing']]):
-            return True
-        datetime2 = datetime.datetime.now()
-        print("识别耗时：", datetime2 - datetime1)
-        print("识别结果：", r)
-    except Exception as e:
-        print(e)
+def is_audio_silent(audio_file_path, threshold=0.7):
+    # 加载音频文件
+    y, sr = librosa.load(audio_file_path, mono=True, sr=None)  # mono=True表示单声道
+    if sr != 16000:
+        raise ValueError("音频采样率必须为16kHz，但给定的采样率为{} kHz".format(sr / 1000))
+
+    # 转换为16位PCM格式
+    y_16bit = (y * (2 ** 15)).astype(np.int16)
+
+    # 初始化VAD
+    vad = webrtcvad.Vad(3)  # 模式3是最严格的
+
+    # 分割音频为10毫秒的帧
+    frames = np.array_split(y_16bit, int(len(y_16bit) / 160))  # 160 samples = 10 ms
+
+    # 运行VAD
+    is_speech = [bool(vad.is_speech(frame.tobytes(), sr)) for frame in frames]
+
+    speech_frames = sum(is_speech)
+    total_frames = len(is_speech)
+    # 计算静音比例
+    silence_ratio = (total_frames - speech_frames) / len(is_speech)
+
+    # 判断静音
+    if silence_ratio > threshold:  # 如果70%以上的帧被认为是静音，则认为整个音频是静音
+        return True
+    else:
         return False
-    return False
 
 
 def SOVITS_TTS(character: str, emotion: str, text, filename):
@@ -114,7 +194,7 @@ def SOVITS_TTS(character: str, emotion: str, text, filename):
 def play(file_path, volume: float = 1):
     # 初始化pygame音频模块
     pygame.mixer.init()
-    pygame.mixer.music.set_volume(volume)  # 设置为一半音量
+    pygame.mixer.music.set_volume(volume)  # 设置音量
     # 加载MP3、wav文件
     pygame.mixer.music.load(file_path)
     # 播放MP3、wav文件
@@ -127,13 +207,4 @@ def play(file_path, volume: float = 1):
 
 
 if __name__ == '__main__':
-    play("wakeup.wav")
-    # print(STT("16k.wav"))
-    # SOVITS_TTS("hutao", "开心", "大家好，我是普通的TTS应用生成的音频", "GPTSOVITS.mp3")
-    pass
-    # record(5, 16000, "./audio/recorded_audio.wav")
-
-    # STT("./audio/recorded_audio.wav")
-    # SOVITS_TTS("paimon", '开心',
-    #            "携手最具影响力的中文知识平台，用知识的价值提升品牌的价值。",
-    #            "TTS.mp3")
+    record_until_silence(2, 16000, "output.wav")

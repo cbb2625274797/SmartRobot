@@ -1,6 +1,7 @@
 import os
 import platform
 import threading
+import time
 
 import pypinyin
 
@@ -14,6 +15,7 @@ def cleanup():
     删除缓存目录的文件
     :return:0/1
     """
+    cnt = 0
     directory = "./audio"
     # 遍历文件列表并删除每个文件
     for root, dirs, files in os.walk(directory):
@@ -24,15 +26,19 @@ def cleanup():
                 try:
                     # 删除文件
                     os.remove(file_path)
+                    cnt += 1
                 except OSError as e:
                     # 打印删除失败的原因
                     print(f"无法删除 {file_path}。原因: {e.strerror}")
-    print("缓存路径清空")
+    print(f"缓存路径清空,删除了{cnt}个文件")
     return 0
 
 
-def contains_sublist(lst, sublist):
-    return any(lst[i:i + len(sublist)] == sublist for i in range(len(lst) - len(sublist) + 1))
+def contains_sublist(lst, sub_list):
+    # 使用join()方法将列表元素拼接成字符串
+    result_string = ''.join([item for sublist in sub_list for item in sublist])
+    target_string = ''.join([item for sublist in lst for item in sublist])
+    return result_string in target_string
 
 
 class ROBOT:
@@ -72,7 +78,6 @@ class ROBOT:
         self.rarm = 90
         self.body = 90
         self.foot = 90
-        self.cooldowm = 0
         self.PWM_instance1 = PWM.PWM()
 
         self.thread1 = threading.Thread(target=self.thread_function_1, args=())
@@ -81,42 +86,46 @@ class ROBOT:
     def run(self):
         self.thread1.start()
         self.thread3.start()
+        while self.PWM_instance1.Mqtt_ins is None:
+            time.sleep(0.1)
+            self.PWM_instance1.Mqtt_ins = self.MQTT_instance
 
-    def set_foot_rotation(self, target_angle: float):
+    def set_body_rotation(self, target_angle: float, speed: float = 1):
         """
-        进行足部旋转
+        进行身体旋转
+        :param speed: 速度
         :param target_angle: 旋转角度
         :return:
         """
-        print("足部旋转到", target_angle, "度")
-        self.PWM_instance1.angle_switch(0, self.foot, target_angle, 1)
+        print("身体旋转到", target_angle, "度")
+        self.PWM_instance1.angle_switch(0, self.foot, target_angle, speed)
         self.foot = target_angle
         return True
 
-    def set_body_rotation(self, target_angle: float):
+    def set_foot_rotation(self, target_angle: float, speed: float = 1):
         """
-        进行身体旋转
+        进行足部旋转
         """
-        print("身体旋转到", target_angle, "度")
-        self.PWM_instance1.angle_switch(1, self.body, target_angle, 1)
+        print("足部旋转到", target_angle, "度")
+        self.PWM_instance1.angle_switch(4, self.body, target_angle, speed)
         self.body = target_angle
         return True
 
-    def set_larm_rotation(self, target_angle: float):
+    def set_larm_rotation(self, target_angle: float, speed: float = 1):
         """
         进行左臂旋转
         """
         print("左臂旋转到", target_angle, "度")
-        self.PWM_instance1.angle_switch(2, self.larm, target_angle, 1)
+        self.PWM_instance1.angle_switch(8, self.larm, target_angle, speed)
         self.larm = target_angle
         return True
 
-    def set_rarm_rotation(self, target_angle: float):
+    def set_rarm_rotation(self, target_angle: float, speed: float = 1):
         """
         进行右臂旋转
         """
         print("右臂旋转到", target_angle, "度")
-        self.PWM_instance1.angle_switch(3, self.rarm, target_angle, 1)
+        self.PWM_instance1.angle_switch(12, self.rarm, target_angle, speed)
         self.rarm = target_angle
         return True
 
@@ -166,25 +175,39 @@ class ROBOT:
         """
         filepath = "./audio/recorded_audio.wav"
         sleep = True
-        if self.mode == "sound":
+        if self.mode == "audio":
             while True:
                 if sleep:
                     AU.record(self.wake_time, 16000, filepath)
+                    # threshold = 1 / self.wake_time
+                    # if not AU.is_audio_silent("./audio/recorded_audio.wav", threshold):
                     pinyin = pypinyin.pinyin(AU.STT(filepath)[0], style=pypinyin.NORMAL)
+                    # 判断是否包含唤醒词
                     if contains_sublist(pinyin, pypinyin.pinyin(self.name, style=pypinyin.NORMAL)):
                         sleep = False
                 elif not sleep:
                     cleanup()
                     AU.play("./audio/wakeup.wav", self.volume)  # 播放提示音
+                    self.MQTT_instance.publish("other/status", "聆听")
                     AU.record(5, 16000, filepath)
+                    # if AU.record_until_silence(3, 16000, filepath, 7):
+                        # if not AU.is_audio_silent("./audio/recorded_audio.wav", 0.3):
                     question = AU.STT(filepath)[0]
-                    self.QF.chat(self.model, question, father_robot=self)
-                    if not self.continue_talk:  # 如果不是连续对话，睡眠
+                    if question == "":
+                        print("对话为空")
+                        pass
+                    elif "请你退下" in question:
+                        self.MQTT_instance.publish("other/status", "休眠")
                         sleep = True
+                    else:
+                        self.QF.chat(self.model, question, father_robot=self)
+                        if not self.continue_talk:  # 如果不是连续对话，睡眠
+                            sleep = True
+                            self.MQTT_instance.publish("other/status", "休眠")
         else:
             while True:
-                cleanup()
                 input("按回车继续...")  # 这里程序会暂停，等待用户按下回车
+                cleanup()
                 AU.play("./audio/wakeup.wav", self.volume)  # 播放提示音
                 question = input("请输入你的提问:\n")
                 self.QF.chat(self.model, question, father_robot=self)
