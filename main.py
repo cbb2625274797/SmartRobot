@@ -17,27 +17,33 @@ class orangepi_server:
         self.MQTT_port = 1883
         self.host = host
 
-        self.thread1 = threading.Thread(target=self.thread_function_1, args=())
-        self.thread2 = threading.Thread(target=self.thread_function_2)
+        self.thread_robot_ins = threading.Thread(target=self.robot_thread)
+        self.thread_mqtt_ins = threading.Thread(target=self.mqtt_thread)
 
     def run(self):
-        self.thread2.start()
-        self.thread1.start()
-        time.sleep(5)
+        self.thread_mqtt_ins.start()
+        self.thread_robot_ins.start()
+
+        while not self.ROBOT_instance:  # 等待机器人初始化完成
+            time.sleep(0.01)
         self.ROBOT_instance.MQTT_instance = self.MQTT_instance
+
+        while not self.MQTT_instance.init_ok:  # 等待MQTT初始化完成
+            time.sleep(0.01)
         self.MQTT_instance.father_robot = self.ROBOT_instance
+
         print("初始化完成")
 
-    def thread_function_1(self):
+    def robot_thread(self):
         """
         新建机器人
         :return:
         """
         # self.ROBOT_instance = robot.ROBOT("ERNIE-3.5-4K-0205", host=MQTT_server, mode="text")·
-        self.ROBOT_instance = robot.ROBOT("ERNIE-3.5-4K-0205", host=MQTT_server, mode="audio")
+        self.ROBOT_instance = robot.ROBOT("qwen2.5_3b", host=MQTT_ip, mode="text")
         self.ROBOT_instance.run()
 
-    def thread_function_2(self):
+    def mqtt_thread(self):
         """
         进行MQTT的操作
         :return:
@@ -46,11 +52,9 @@ class orangepi_server:
         self.MQTT_instance.run()
 
 
-sovits_server = 'http://192.168.197.193:9880'
-UI_server = 'http://192.168.197.193:8080'
-MQTT_server = "192.168.197.193"
-
 if __name__ == '__main__':
+    from config.ip_config import MQTT_ip
+
     # 运行
-    instance = orangepi_server(MQTT_server)
+    instance = orangepi_server(MQTT_ip)
     instance.run()

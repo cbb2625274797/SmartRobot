@@ -30,7 +30,7 @@ def record(duration, samplerate, filepath):
     # 确保录音数据的位深度与WAV文件匹配
     if myrecording.dtype != wav_dtype:
         recording = (myrecording * (2 ** 15 - 1)).astype(wav_dtype)
-        # 保存为WAV文件
+    # 保存为WAV文件
     write(filepath, wav_fs, recording)
     print("录音已保存为 'output.wav'")
 

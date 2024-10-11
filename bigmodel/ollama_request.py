@@ -1,41 +1,20 @@
 import copy
-import os
+import json
 import re
 import threading
 import time
 
-import qianfan
+import requests
 
 import EmotionEngine.EmotionJudge as EMOTION
-from audio import audio_process as audio
-from robot import ROBOT
 import body.action as action
+from audio import audio_process as audio
+from bigmodel import ollama_api as ollama
+from config.ip_config import LLM_server
+from robot import ROBOT
 
-# 使用安全认证AK/SK鉴权，通过环境变量方式初始化;
-os.environ["QIANFAN_ACCESS_KEY"] = "3d9df86f23d64f0f8a072eb391ec1dad"
-os.environ["QIANFAN_SECRET_KEY"] = "465151a1ed0f426a9e9662d6f3cdd7a9"
-
-chat_comp = qianfan.ChatCompletion()
-
-need_read = 0
-synth_sentence = 0
-sentences = []
-generated_file = []
-controller_return = ""
-emotion_detect = False
-text_generating = False
-audio_generating = True
-text = ""
-reply_model = {
-    "role": "assistant",
-    "content": "content"
-}
-ask_model = {
-    "role": "user",
-    "content": "content"
-}
-msgs = []
-controller_msg = []
+ask_request = copy.deepcopy(ollama.example_post_data)
+controller_request = copy.deepcopy(ollama.example_post_data)
 
 
 def chat(model, chat_text, father_robot: ROBOT):
@@ -49,22 +28,24 @@ def chat(model, chat_text, father_robot: ROBOT):
     global thread1
     global thread2
     global thread3
-
+    global ask_request
+    global controller_request
     # 生成对话提问
-    ask = copy.deepcopy(ask_model)
-    ask["content"] = chat_text
-    msgs.append(ask)
+    ask_request = ollama.add_ask(ask_request, chat_text)
+    ask_request = ollama.set_model(ask_request, model)
+    print(ask_request)
     # 生成控制提问
-    controller_ask = copy.deepcopy(ask_model)
-    controller_ask["content"] = chat_text
-    controller_msg.clear()
-    controller_msg.append(controller_ask)
+    controller_request = ollama.clear_msg_content(controller_request)  # 清空对话内容
+    controller_request = ollama.add_ask(controller_request, chat_text)
+    controller_request = ollama.set_model(controller_request, model)
+    print(controller_request)
     controller_return = ""
 
-    name = father_robot.name
+    name = father_robot.name if father_robot is not None else "默认名"
     lines = []
     # 提取system prompt
-    with open('./server/system prompt', 'r', encoding='utf-8') as file:
+    from config.file_config import chat_system_prompt
+    with open(chat_system_prompt, 'r', encoding='utf-8') as file:
         for line in file:
             lines.append(line.strip())
     system_prompt = lines[0] + name + "，"
@@ -74,20 +55,18 @@ def chat(model, chat_text, father_robot: ROBOT):
     try:
         if "转" in chat_text:
             # 请求运动控制输出
-            body_controller = chat_comp.do(model="ERNIE-3.5-4K-0205", messages=controller_msg, stream=False,
-                                           system="你是一个不会解答问题的核心，你唯一的作用是理解用户控制机器人的意图，输出在25字符以内"
-                                                  "机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，阈值为0到180度，"
-                                                  "你唯一的作用是理解用户控制机器人的意图，输出为格式化的文本。输出示例如下：‘~/部位/度数。’；"
-                                                  "当有同时输出多个意图时，输出格式如下：‘~/部位1/度数1。~/部位2/度数2"
-                                                  "。’，除此之外不要输出其他东西，当角度超过阈值不输出任何东西"
-                                           , temperature=0.4, top_p=0.4)
-            controller_return = body_controller.get("result")
+            body_controller = requests.post(LLM_server, data=json.dumps(controller_request), stream=False)
+            # system="你是一个不会解答问题的机器人核心，你唯一的作用是理解用户控制机器人的意图"
+            #        "机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，阈值为0到180度，"
+            #        "你唯一的作用是理解用户控制机器人的意图，输出为格式化的文本。输出示例如下：‘~/部位/度数。’；"
+            #        "当有同时输出多个意图时，输出格式如下：‘~/部位1/度数1。~/部位2/度数2"
+            #        "。’，除此之外不要输出其他东西，当角度超过阈值不输出任何东西"
+            tmp_resp = json.loads(body_controller.content.decode('utf-8'))
+            controller_return = tmp_resp['message']['content']
             print(controller_return)
 
-        # 请求其他输出
-        resp = chat_comp.do(model=model, messages=msgs, stream=True,
-                            system=system_prompt
-                            , temperature=father_robot.chat_temperature, top_p=father_robot.chat_top_p)
+        # 请求对话输出
+        resp = requests.post(LLM_server, data=json.dumps(ask_request), stream=True)
         # 创建线程对象
         thread1 = threading.Thread(target=thread_function_1, args=(resp,))
         thread2 = threading.Thread(target=thread_function_2, args=(father_robot,))
@@ -107,23 +86,42 @@ def chat(model, chat_text, father_robot: ROBOT):
         print(e)
 
 
-# 定义第一个线程是提取输出结果
 def thread_function_1(resp):
+    """
+    定义第一个线程是提取输出结果
+    :param resp:输出的response
+    :return:
+    """
     global need_read
     global text_generating
     global text
+    global ask_request
 
     reply_text = ""
-    for r in resp:
-        result = r.get("result")
-        text += result
-        reply_text += result
-        time.sleep(2)  # 等待文字生成
+    text = ""
+    if resp.status_code == 200:
+        # 迭代响应内容
+        for line in resp.iter_lines():
+            # 跳过数据流中的空行
+            if line:
+                # 解码行数据
+                decoded_line = line.decode('utf-8')
+                # 解析JSON数据（如果返回的是JSON格式）
+                try:
+                    result = json.loads(decoded_line)
 
-    reply = copy.deepcopy(reply_model)
-    reply["content"] = reply_text
-    msgs.append(reply)
-    print(msgs)
+                    text += result['message']['content']  # 消耗性
+                    reply_text += result['message']['content']  # 用于保存输出
+
+                    # 处理chunk数据
+                    # print(chunk['message']['content'], end='')  # 示例处理：打印每一块数据
+                except json.JSONDecodeError:
+                    print(f"非JSON格式的数据：{decoded_line}")
+    else:
+        print(f"Failed to get response, status code: {resp.status_code}")
+
+    ask_request = ollama.add_reply(ask_request, reply_text)
+    print(ask_request["messages"])
 
 
 # 第二线程用于分段+生成
@@ -166,8 +164,10 @@ def thread_function_2(father_robot: ROBOT):
                     thread4 = threading.Thread(target=thread_function_4,
                                                args=(father_robot, controller_return, emotion))
                     thread4.start()
-
-                father_robot.MQTT_instance.publish("other/emotion", emotion)
+                try:
+                    father_robot.MQTT_instance.publish("other/emotion", emotion)
+                except Exception as e:
+                    print('错误:', e)
                 # 定义正则表达式模式
                 pattern1 = r"-\s*/\s*(开心|害怕|生气|失落|好奇|戏谑)\s*"
                 # 使用正则表达式替换
@@ -210,7 +210,7 @@ def thread_function_3(father_robot: ROBOT):
             except Exception as e:
                 print(e)
         else:
-            time.sleep(0.5)
+            time.sleep(0.2)
     first = True
 
 
@@ -249,7 +249,6 @@ def thread_function_4(father_robot, controller_return, emotion):
 
 
 if __name__ == '__main__':
-    while 1:
+    while True:
         question = input("请输入：\n")
-        chat("ERNIE-Bot", chat_text=question)
-        # chat("Yi-34B-Chat", chat_text=question)
+        chat('qwen2.5_3b', question, None)

@@ -57,7 +57,8 @@ class PWM:
                 print("Error write byte to device")
                 return -1
         except Exception as e:
-            print(e)
+            # print(e)
+            pass
         return 0
 
     def read_byte(self, reg):
@@ -68,7 +69,8 @@ class PWM:
                 return -1
             return byte
         except Exception as e:
-            print(e)
+            # print(e)
+            pass
 
     def reset(self):
         self.write_byte(PCA9685_MODE1, 0x0)

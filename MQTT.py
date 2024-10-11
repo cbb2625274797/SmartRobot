@@ -5,9 +5,10 @@ import time
 import paho.mqtt.client as mqtt
 
 import webUI
+
 try:
     from audio.GPT_SOVITS import set_character
-except:
+except Exception as e:
     pass
 
 
@@ -34,7 +35,8 @@ def stop_server(cmd_file_path):
 
 
 class new_class:
-    def __init__(self, host="192.168.21.193", port=1883):
+    def __init__(self, host="localhost", port=1883):
+        self.init_ok = False
         # 创建一个MQTT客户端实例
         self.drag = False
         self.client = mqtt.Client("local1")
@@ -48,7 +50,10 @@ class new_class:
         self.client.on_message = self.on_message
 
         # 连接到MQTT服务器
-        self.client.connect(self.host, self.port, 20)
+        try:
+            self.client.connect(self.host, self.port, 20)
+        except Exception as e:
+            print(e,'MQTT连接失败！')
 
         self.subscribe("sound/character", 2)
         self.subscribe("sound/temperature")
@@ -64,10 +69,10 @@ class new_class:
         self.subscribe("other/wake_time")
         self.subscribe("other/volume")
         self.subscribe("other/drag", 2)
-
         # 线程控制
         thread1 = threading.Thread(target=self.thread_function_1, args=())
         thread1.start()
+        self.init_ok = True
         while True:
             while self.drag:
                 thread2 = threading.Thread(target=self.thread_function_2, args=())

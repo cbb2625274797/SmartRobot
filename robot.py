@@ -49,14 +49,16 @@ class ROBOT:
                  mode: str = "text"):
         """
         进行初始化
-        :param model:使用的千帆模型
+        :param model:使用的模型
         :param name:机器人名称/唤醒词
         :param mode:text/sound，控制是否语音
         :param host:主机地址
         """
-        import QF_ASK as QF
+        import bigmodel.QF_request as qf
+        import bigmodel.ollama_request as ollama
+        self.QF = qf
+        self.ollama = ollama
         self.MQTT_instance = None
-        self.QF = QF
         self.host = host
         # 总体参数
         self.mode = mode
@@ -65,6 +67,7 @@ class ROBOT:
         self.continue_talk = True
         self.volume = 1
         # 文字大模型API参数
+        self.modeltype = "ollama"
         self.model = model
         self.chat_temperature = 0.95
         self.chat_top_p = 0.75
@@ -80,12 +83,12 @@ class ROBOT:
         self.foot = 90
         self.PWM_instance1 = PWM.PWM()
 
-        self.thread1 = threading.Thread(target=self.thread_function_1, args=())
-        self.thread3 = threading.Thread(target=self.thread_function_3, args=())
+        self.chat_thread_ins = threading.Thread(target=self.chat_thread, args=())
+        self.web_open_thread_ins = threading.Thread(target=self.web_open_thread, args=())
 
     def run(self):
-        self.thread1.start()
-        self.thread3.start()
+        self.chat_thread_ins.start()
+        self.web_open_thread_ins.start()
         while self.PWM_instance1.Mqtt_ins is None:
             time.sleep(0.1)
             self.PWM_instance1.Mqtt_ins = self.MQTT_instance
@@ -168,7 +171,7 @@ class ROBOT:
             print(e)
         return 0
 
-    def thread_function_1(self):
+    def chat_thread(self):
         """
         进行大模型对话的操作
         :return:
@@ -194,25 +197,31 @@ class ROBOT:
                         # if not AU.is_audio_silent("./audio/recorded_audio.wav", 0.3):
                     question = AU.STT(filepath)[0]
                     if question == "":
-                        print("对话为空")
+                        print("语音识别为空！")
                         pass
                     elif "请你退下" in question:
                         self.MQTT_instance.publish("other/status", "休眠")
                         sleep = True
                     else:
-                        self.QF.chat(self.model, question, father_robot=self)
+                        if self.modeltype == 'ERNIE':
+                            self.QF.chat(self.model, question, father_robot=self)
+                        else:
+                            self.ollama.chat(self.model, question, father_robot=self)
                         if not self.continue_talk:  # 如果不是连续对话，睡眠
                             sleep = True
                             self.MQTT_instance.publish("other/status", "休眠")
         else:
             while True:
-                input("按回车继续...")  # 这里程序会暂停，等待用户按下回车
+                input("按回车继续...")  # 程序暂停，等待用户按下回车
                 cleanup()
                 AU.play("./audio/wakeup.wav", self.volume)  # 播放提示音
                 question = input("请输入你的提问:\n")
-                self.QF.chat(self.model, question, father_robot=self)
+                if self.modeltype == 'ERNIE':
+                    self.QF.chat(self.model, question, father_robot=self)
+                else:
+                    self.ollama.chat(self.model, question, father_robot=self)
 
-    def thread_function_3(self):
+    def web_open_thread(self):
         """
         进行web的操作（打开WebRTC图形化界面）
         :host:主机地址
