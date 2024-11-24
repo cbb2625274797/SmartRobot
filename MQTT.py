@@ -5,7 +5,10 @@ import time
 import paho.mqtt.client as mqtt
 
 import webUI
-from audio.GPT_SOVITS import set_character
+try:
+    from audio.GPT_SOVITS import set_character
+except:
+    pass
 
 
 def start_server(cmd_file_path):
@@ -34,7 +37,7 @@ class new_class:
     def __init__(self, host="192.168.21.193", port=1883):
         # 创建一个MQTT客户端实例
         self.drag = False
-        self.client = mqtt.Client("python1")
+        self.client = mqtt.Client("local1")
         self.father_robot = None
         self.host = host
         self.port = port
@@ -78,8 +81,8 @@ class new_class:
 
     def thread_function_2(self):
         while self.drag:
-            self.client.publish("other/x", webUI.mouse_location().x, qos=0)
-            self.client.publish("other/y", webUI.mouse_location().y, qos=0)
+            self.client.publish("other/x", webUI.mouse_location().x * 2, qos=0)
+            self.client.publish("other/y", webUI.mouse_location().y * 2, qos=0)
             time.sleep(0.04)
 
     # 当连接到MQTT服务器时的回调函数
@@ -133,22 +136,22 @@ class new_class:
         elif msg.topic == "motion/larm":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.larm != temp:
-                self.father_robot.set_larm_rotation(temp)
+                self.father_robot.set_larm_rotation(temp, 2)
                 time.sleep(0.2)
         elif msg.topic == "motion/rarm":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.rarm != temp:
-                self.father_robot.set_rarm_rotation(temp)
+                self.father_robot.set_rarm_rotation(temp, 2)
                 time.sleep(0.2)
         elif msg.topic == "motion/leg":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.body != temp:
-                self.father_robot.set_body_rotation(temp)
+                self.father_robot.set_body_rotation(temp, 2)
                 time.sleep(0.2)
         elif msg.topic == "motion/foot":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.foot != temp:
-                self.father_robot.set_foot_rotation(temp)
+                self.father_robot.set_foot_rotation(temp, 2)
                 time.sleep(0.2)
         elif msg.topic == "other/wake_time":
             temp = float(msg.payload.decode("utf-8"))

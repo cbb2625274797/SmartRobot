@@ -1,12 +1,12 @@
 try:
     import wiringpi
 except Exception as e:
-    pass
+    print(e)
 import argparse
 import time
 
-import body.bezier as bezier
-# import bezier
+import bezier
+
 parser = argparse.ArgumentParser(description='i2c')
 parser.add_argument("--device", type=str, default="/dev/i2c-2", help='specify the i2c node')
 args = parser.parse_args()
@@ -136,8 +136,8 @@ class PWM:
         """
         # print(f'{num}通道从{start_angle}到{stop_angle}')
         if num == 0:
-            start_angle = start_angle + 9
-            stop_angle = stop_angle + 9
+            start_angle = start_angle + 8
+            stop_angle = stop_angle + 8
         elif num == 4:
             start_angle = start_angle + 13
             stop_angle = stop_angle + 13
@@ -157,46 +157,33 @@ class PWM:
         else:
             float_array = bezier.angle_bezier_clamped(start_angle, stop_angle, start_angle * 0.75, stop_angle * 1.1,
                                                       round(10 * abs(start_angle - stop_angle) / speed))
-        # 同步转动
-        if num == 0:
-            self.Mqtt_ins.publish("motion1/foot", str(stop_angle))
-        elif num == 4:
-            self.Mqtt_ins.publish("motion1/body", str(stop_angle))
-        elif num == 8:
-            self.Mqtt_ins.publish("motion1/larm", str(stop_angle))
-        elif num == 12:
-            self.Mqtt_ins.publish("motion1/rarm", str(180 - stop_angle))
-        for i in float_array:
-            self.set_Angle(num, i)
 
     def test(self):
         self.setPWMFreq(50)
-        # while 1:
-        for j in range(0, 16, 4):
-            for i in range(89, 90):
-                self.set_Angle(j, i)
-                # time.sleep(0.1)
-                print(f"{j}通道{i}角度")
+        while 1:
+            for j in range(0, 16, 1):
+                for i in range(90, 91):
+                    if j == 0:
+                        self.set_Angle(j, i+9)
+                    elif j == 4:
+                        self.set_Angle(j, i+13)
+                    elif j == 8:
+                        self.set_Angle(j, i+2)
+                    elif j == 12:
+                        self.set_Angle(j, i+5)
+                    else:
+                        self.set_Angle(j, i)
+                    # self.angle_switch(j, i, i, 1)
+                    time.sleep(0.1)
+                    print(f"{j}通道{i}角度")
+            for j in range(3, 16, 4):
+                for i in range(180, 90):
+                    self.set_Angle(j, i)
+                    time.sleep(0.1)
+                    print(f"{j}通道{i}角度")
+                # self.set_Angle(j, 90)
 
 
 if __name__ == '__main__':
     pwm_ins1 = PWM()
     pwm_ins1.test()
-    speed = 2
-    for j in range(90, 120):
-        pwm_ins1.angle_switch(0, j, j + 1, speed)
-        pwm_ins1.angle_switch(4, j, j + 1, speed)
-        pwm_ins1.angle_switch(8, j, j + 1, speed)
-        pwm_ins1.angle_switch(12, j, j + 1, speed)
-    time.sleep(2)
-    for j in range(120, 90, -1):
-        pwm_ins1.angle_switch(0, j, j - 1, speed)
-        pwm_ins1.angle_switch(4, j, j - 1, speed)
-        pwm_ins1.angle_switch(8, j, j - 1, speed)
-        pwm_ins1.angle_switch(12, j, j - 1, speed)
-    time.sleep(10)
-    for j in range(0, 13, 4):
-        pwm_ins1.angle_switch(j, 90, 30, 2)
-        pwm_ins1.angle_switch(j, 30, 150, 3)
-        pwm_ins1.angle_switch(j, 150, 30, 3)
-        pwm_ins1.angle_switch(j, 30, 90, 2)
