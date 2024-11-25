@@ -136,8 +136,8 @@ class PWM:
         """
         # print(f'{num}通道从{start_angle}到{stop_angle}')
         if num == 0:
-            start_angle = start_angle + 8
-            stop_angle = stop_angle + 8
+            start_angle = start_angle + 9
+            stop_angle = stop_angle + 9
         elif num == 4:
             start_angle = start_angle + 13
             stop_angle = stop_angle + 13

@@ -32,7 +32,7 @@ def record(duration, samplerate, filepath):
         recording = (myrecording * (2 ** 15 - 1)).astype(wav_dtype)
         # 保存为WAV文件
     write(filepath, wav_fs, recording)
-    print("录音已保存为 'output.wav'")
+    # print("录音已保存为 'recorded_audio.wav'")
 
 
 def record_until_silence(duration, samplerate: int, filepath, max_time=10):
@@ -207,4 +207,4 @@ def play(file_path, volume: float = 1):
 
 
 if __name__ == '__main__':
-    record_until_silence(2, 16000, "output.wav")
+    record_until_silence(2, 16000, "recorded_audio.wav")

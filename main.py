@@ -5,7 +5,7 @@ import MQTT
 import robot
 
 
-class orangepi_server:
+class orangepi_client:
     def __init__(self, host, ):
         """
         进行初始化
@@ -16,16 +16,26 @@ class orangepi_server:
         self.MQTT_instance = None
         self.MQTT_port = 1883
         self.host = host
+        self.MQTT_init_ok = False
+        self.robot_init_ok = False
+        self.client_init_ok = False
 
-        self.thread1 = threading.Thread(target=self.thread_function_1, args=())
-        self.thread2 = threading.Thread(target=self.thread_function_2)
+        self.thread_robot = threading.Thread(target=self.thread_function_1, args=())
+        self.thread_mqtt = threading.Thread(target=self.thread_function_2)
 
     def run(self):
-        self.thread2.start()
-        self.thread1.start()
-        time.sleep(5)
+        self.thread_mqtt.start()
+        self.thread_robot.start()
+        while not self.MQTT_init_ok or not self.robot_init_ok:
+            if not self.MQTT_init_ok:
+                print("MQTT初始化中...")
+            elif not self.robot_init_ok:
+                print("机器人初始化中...")
+            time.sleep(1)
         self.ROBOT_instance.MQTT_instance = self.MQTT_instance
         self.MQTT_instance.father_robot = self.ROBOT_instance
+
+        self.client_init_ok = True
         print("初始化完成")
 
     def thread_function_1(self):
@@ -34,7 +44,10 @@ class orangepi_server:
         :return:
         """
         # self.ROBOT_instance = robot.ROBOT("ERNIE-3.5-4K-0205", host=MQTT_server, mode="text")
-        self.ROBOT_instance = robot.ROBOT("ERNIE-3.5-4K-0205", host=MQTT_server, mode="audio")
+        self.ROBOT_instance = robot.ROBOT("ERNIE-4.0-Turbo-8K", host=MQTT_server, mode="audio")
+        self.robot_init_ok = True
+        while not self.client_init_ok:
+            time.sleep(0.1)
         self.ROBOT_instance.run()
 
     def thread_function_2(self):
@@ -43,6 +56,9 @@ class orangepi_server:
         :return:
         """
         self.MQTT_instance = MQTT.new_class(self.host, self.MQTT_port)
+        self.MQTT_init_ok = True
+        while not self.client_init_ok:
+            time.sleep(0.1)
         self.MQTT_instance.run()
 
 
@@ -52,5 +68,5 @@ MQTT_server = "192.168.31.3"
 
 if __name__ == '__main__':
     # 运行
-    instance = orangepi_server(MQTT_server)
+    instance = orangepi_client(MQTT_server)
     instance.run()

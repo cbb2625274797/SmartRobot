@@ -9,6 +9,8 @@ import webUI as UI
 from audio import audio_process as AU
 from body import PWM
 
+import audio.audio_recognition as ASR
+
 
 def cleanup():
     """
@@ -54,11 +56,14 @@ class ROBOT:
         :param mode:text/sound，控制是否语音
         :param host:主机地址
         """
-        import QF_ASK as QF
+        from bigmodel import QF_request as QF
         self.MQTT_instance = None
         self.QF = QF
         self.host = host
         # 总体参数
+
+        self.asr_mode = None
+        self.asr_model = None
         self.mode = mode
         self.name = name
         self.wake_time = 3
@@ -74,21 +79,30 @@ class ROBOT:
         self.sound_temperature = 1
         self.sound_top_k = 0.9
         # 姿态参数
+        self.action_enable = True
         self.larm = 90
         self.rarm = 90
         self.body = 90
         self.foot = 90
         self.PWM_instance1 = PWM.PWM()
+        self.thread_openweb = threading.Thread(target=self.web_open_thread, args=())
+        self.thread_chat = threading.Thread(target=self.chat_thread, args=())
+        self.ASR_init()
 
-        self.thread1 = threading.Thread(target=self.thread_function_1, args=())
-        self.thread3 = threading.Thread(target=self.thread_function_3, args=())
+    def ASR_init(self):
+        print("ASR模型组件初始化...需要较长时间...")
+        self.asr_model = ASR.load_model()
+        wav_path = './audio/wakeup.wav'
+        result = ASR.inference(wav_path, self.asr_model)
+        print("ASR模型组件初始化完成！")
 
     def run(self):
-        self.thread1.start()
-        self.thread3.start()
+        self.thread_openweb.start()
         while self.PWM_instance1.Mqtt_ins is None:
             time.sleep(0.1)
             self.PWM_instance1.Mqtt_ins = self.MQTT_instance
+        print("机器人已运行")
+        self.thread_chat.start()
 
     def set_body_rotation(self, target_angle: float, speed: float = 1):
         """
@@ -168,7 +182,7 @@ class ROBOT:
             print(e)
         return 0
 
-    def thread_function_1(self):
+    def chat_thread(self):
         """
         进行大模型对话的操作
         :return:
@@ -181,7 +195,17 @@ class ROBOT:
                     AU.record(self.wake_time, 16000, filepath)
                     # threshold = 1 / self.wake_time
                     # if not AU.is_audio_silent("./audio/recorded_audio.wav", threshold):
-                    pinyin = pypinyin.pinyin(AU.STT(filepath)[0], style=pypinyin.NORMAL)
+
+                    self.asr_mode = "offline"
+                    if self.asr_mode == "online":
+                        # 旧版在线语音识别
+                        pinyin = pypinyin.pinyin(AU.STT(filepath)[0], style=pypinyin.NORMAL)
+                    else:
+                        # 新版离线语音识别
+                        question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
+                        print(question)
+                        pinyin = pypinyin.pinyin(question, style=pypinyin.NORMAL)
+
                     # 判断是否包含唤醒词
                     if contains_sublist(pinyin, pypinyin.pinyin(self.name, style=pypinyin.NORMAL)):
                         sleep = False
@@ -191,8 +215,8 @@ class ROBOT:
                     self.MQTT_instance.publish("other/status", "聆听")
                     AU.record(5, 16000, filepath)
                     # if AU.record_until_silence(3, 16000, filepath, 7):
-                        # if not AU.is_audio_silent("./audio/recorded_audio.wav", 0.3):
-                    question = AU.STT(filepath)[0]
+                    # if not AU.is_audio_silent("./audio/recorded_audio.wav", 0.3):
+                    question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
                     if question == "":
                         print("对话为空")
                         pass
@@ -212,7 +236,7 @@ class ROBOT:
                 question = input("请输入你的提问:\n")
                 self.QF.chat(self.model, question, father_robot=self)
 
-    def thread_function_3(self):
+    def web_open_thread(self):
         """
         进行web的操作（打开WebRTC图形化界面）
         :host:主机地址

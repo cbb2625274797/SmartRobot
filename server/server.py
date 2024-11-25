@@ -24,7 +24,7 @@ class SERVER:
         self.game_exe_path = game_exe_path
         self.stop_flag = False
 
-        self.thread1 = threading.Thread(target=self.thread_function_1)  #emqx
+        self.thread1 = threading.Thread(target=self.thread_function_1)  # emqx
         self.thread3 = threading.Thread(target=self.thread_function_3)  # pixel streaming
         self.thread4 = threading.Thread(target=self.thread_function_4)  # 音频合成服务器
         self.thread5 = threading.Thread(target=self.thread_function_5)  # 运行游戏
