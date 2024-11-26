@@ -2,13 +2,13 @@ import json
 import time
 import wave
 
-import librosa
 import numpy as np
 import pyaudio
 import pygame
 import sounddevice as sd
 import webrtcvad
 from aip import AipSpeech
+from pydub import AudioSegment
 from scipy.io.wavfile import write
 
 from audio import GPT_SOVITS as SOVITS
@@ -35,7 +35,46 @@ def record(duration, samplerate, filepath):
     # print("录音已保存为 'recorded_audio.wav'")
 
 
-def record_until_silence(duration, samplerate: int, filepath, max_time=10):
+def audio_is_silent(filepath):
+    # 加载音频文件
+    audio = AudioSegment.from_file(filepath)
+
+    # 分割音频，每5秒一个片段
+    segment_duration = 500  # 5秒，单位为毫秒
+    segments = [audio[i:i + segment_duration] for i in range(0, len(audio), segment_duration)]
+
+    # 计算每个片段的音量
+    segment_volumes = [segment.dBFS for segment in segments]
+    for segment in segments:
+        # print(segment.dBFS)
+        pass
+
+    # 筛选音量较大的片段
+    threshold = -45  # 阈值，单位为dBFS
+    filtered_segments = [segment for segment, volume in zip(segments, segment_volumes) if volume > threshold]
+
+    if len(filtered_segments) > 1:
+        # 合并筛选后的片段
+        filtered_audio = filtered_segments[0]
+        for segment in filtered_segments[1:]:
+            filtered_audio += segment
+        # 计算新音频的平均音量
+        filtered_average_loudness = filtered_audio.dBFS
+    else:
+        filtered_average_loudness = -99
+    print(f"过滤后的平均音量: {filtered_average_loudness} dBFS")
+
+    # 判断音量是否超过某个阈值
+    threshold = -41  # 阈值，单位为dBFS
+    if filtered_average_loudness > threshold:
+        # print("音频音量达到")
+        return False
+    else:
+        # print("音频音量过小")
+        return True
+
+
+def record_until_silence(duration, samplerate: int, filepath, max_time=30):
     # 初始化参数
     THRESHOLD_SECONDS = duration  # 静音持续时间，超过这个时间就停止录音
     CHUNK_SIZE = 160  # 每次读取的样本数量
@@ -60,7 +99,7 @@ def record_until_silence(duration, samplerate: int, filepath, max_time=10):
     frames = []
     start_time = time.time()
     last_speech_time = start_time
-
+    print("开始录音...")
     while True:
         # 读取音频数据
         data = stream.read(CHUNK_SIZE)
@@ -71,20 +110,17 @@ def record_until_silence(duration, samplerate: int, filepath, max_time=10):
         # 运行VAD
         if vad.is_speech(frame.tobytes(), RATE):
             last_speech_time = time.time()
-            print(last_speech_time)
+            # print(last_speech_time)
 
+        frames.append(frame)
         # 检查是否超过了静音阈值
         if time.time() - last_speech_time > THRESHOLD_SECONDS:
-            print("静音时间超过阈值，停止录音")
             # 保存语音帧
-            frames.append(frame)
-            return True
+            print("静音时间超过阈值，停止录音")
             break
         elif time.time() - start_time > max_time:
             # 保存语音帧
-            frames.append(frame)
             print("录音时间超过阈值，停止录音")
-            return False
             break
 
     # 停止录音
@@ -94,11 +130,17 @@ def record_until_silence(duration, samplerate: int, filepath, max_time=10):
 
     # 将所有帧合并成一个大的numpy数组
     audio_data = np.concatenate(frames, axis=0)
+    # 计算音频的总时长
+    total_duration = len(audio_data)  # 单位为毫秒
+
+    # 切掉最后2秒的音频
+    cut_duration = max_time*1000  # 切去等效时长
+    new_audio = audio_data[:total_duration - cut_duration]
 
     with wave.open(filepath, 'wb') as wave_file:
         FORMAT = 2
-        wave_file.setparams((CHANNELS, FORMAT, RATE, len(audio_data), 'NONE', 'not compressed'))
-        wave_file.writeframes(audio_data.astype(np.int16).tobytes())
+        wave_file.setparams((CHANNELS, FORMAT, RATE, len(new_audio), 'NONE', 'not compressed'))
+        wave_file.writeframes(new_audio.astype(np.int16).tobytes())
 
     # 返回音频数据
     return audio_data, RATE
@@ -148,36 +190,6 @@ def remove_element(lst, element):
 
 def contains_sublist(lst, sublist):
     return any(lst[i:i + len(sublist)] == sublist for i in range(len(lst) - len(sublist) + 1))
-
-
-def is_audio_silent(audio_file_path, threshold=0.7):
-    # 加载音频文件
-    y, sr = librosa.load(audio_file_path, mono=True, sr=None)  # mono=True表示单声道
-    if sr != 16000:
-        raise ValueError("音频采样率必须为16kHz，但给定的采样率为{} kHz".format(sr / 1000))
-
-    # 转换为16位PCM格式
-    y_16bit = (y * (2 ** 15)).astype(np.int16)
-
-    # 初始化VAD
-    vad = webrtcvad.Vad(3)  # 模式3是最严格的
-
-    # 分割音频为10毫秒的帧
-    frames = np.array_split(y_16bit, int(len(y_16bit) / 160))  # 160 samples = 10 ms
-
-    # 运行VAD
-    is_speech = [bool(vad.is_speech(frame.tobytes(), sr)) for frame in frames]
-
-    speech_frames = sum(is_speech)
-    total_frames = len(is_speech)
-    # 计算静音比例
-    silence_ratio = (total_frames - speech_frames) / len(is_speech)
-
-    # 判断静音
-    if silence_ratio > threshold:  # 如果70%以上的帧被认为是静音，则认为整个音频是静音
-        return True
-    else:
-        return False
 
 
 def SOVITS_TTS(character: str, emotion: str, text, filename):

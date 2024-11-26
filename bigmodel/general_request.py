@@ -15,6 +15,7 @@ LLM_host = '172.29.0.3'
 port = 11434
 LLM_name = 'qwen2.5_32b_q2_k'
 content = "你好，请你生成1000字的文章，关于人工智能"
+text = ""
 
 ask_model = {
     "role": "user",
@@ -29,10 +30,14 @@ controller_msg = []
 
 url = 'http://' + LLM_host + ':' + str(port) + '/api/chat'
 
+headers = {'Content-Type': 'application/json'}
 example_post_data = {
     "model": LLM_name,
     "messages": [
-
+        {
+            "role": "user",
+            "content": "你好，请你介绍下你自己"
+        }
     ],
     "stream": True,
     "suffix": "    return result",
@@ -48,9 +53,9 @@ def chat(model, chat_text, father_robot: ROBOT):
     :return: 无返回
     """
     global controller_return
-    global thread1
-    global thread2
-    global thread3
+    global thread_text_generate
+    global thread_audio_generate
+    global thread_audio_play
 
     # 生成对话提问
     ask = copy.deepcopy(ask_model)
@@ -66,7 +71,7 @@ def chat(model, chat_text, father_robot: ROBOT):
     name = father_robot.name if father_robot is not None else "默认名"
     lines = []
     # 提取system prompt
-    with open('../server/system prompt', 'r', encoding='utf-8') as file:
+    with open('./server/system prompt', 'r', encoding='utf-8') as file:
         for line in file:
             lines.append(line.strip())
     system_prompt = lines[0] + name + "，"
@@ -74,7 +79,7 @@ def chat(model, chat_text, father_robot: ROBOT):
         system_prompt += lines[i]
 
     try:
-        if "转" in chat_text:
+        if "转" in chat_text and father_robot.action_enable:
             # 请求运动控制输出
             body_controller = requests.post(url, data=json.dumps(controller_msg), headers=headers, stream=False)
             # system="你是一个不会解答问题的核心，你唯一的作用是理解用户控制机器人的意图，输出在25字符以内"
@@ -90,19 +95,19 @@ def chat(model, chat_text, father_robot: ROBOT):
         example_post_data['model'] = model
         resp = requests.post(url, data=json.dumps(example_post_data), headers=headers, stream=True)
         # 创建线程对象
-        thread1 = threading.Thread(target=thread_function_1, args=(resp,))
-        thread2 = threading.Thread(target=thread_function_2, args=(father_robot,))
-        thread3 = threading.Thread(target=thread_function_3, args=(father_robot,))
+        thread_text_generate = threading.Thread(target=thread_function_1, args=(resp,))
+        thread_audio_generate = threading.Thread(target=thread_function_2, args=(father_robot,))
+        thread_audio_play = threading.Thread(target=thread_function_3, args=(father_robot,))
 
         # 生成音频文件
-        thread1.start()
-        thread2.start()
-        thread3.start()
+        thread_text_generate.start()
+        thread_audio_generate.start()
+        thread_audio_play.start()
 
         # 等待线程完成
-        thread1.join()
-        thread2.join()
-        thread3.join()
+        thread_text_generate.join()
+        thread_audio_generate.join()
+        thread_audio_play.join()
         print("回答完毕")
     except Exception as e:
         print(e)
@@ -129,7 +134,6 @@ def thread_function_1(resp):
                 # 解析JSON数据（如果返回的是JSON格式）
                 try:
                     result = json.loads(decoded_line)
-
                     text += result['message']['content']  # 消耗性
                     reply_text += result['message']['content']  # 用于保存输出
 
@@ -158,7 +162,7 @@ def thread_function_2(father_robot: ROBOT):
     cnt_generate = 1
     first = True
     emotion = '开心'
-    while thread1.is_alive() or text != "":
+    while thread_text_generate.is_alive() or text != "":
         if text != "":
             # 使用正则表达式匹配以句号、问号或感叹号结尾的句子
             sentence_pattern = r'(.+?)[。？！]'
@@ -217,7 +221,7 @@ def thread_function_3(father_robot: ROBOT):
     global emotion_detect
     global first
 
-    while thread2.is_alive() or generated_file:
+    while thread_audio_generate.is_alive() or generated_file:
         if generated_file:
             # 播放所有生成的音频文件
             filename = generated_file[0]

@@ -9,7 +9,6 @@ import webUI as UI
 from audio import audio_process as AU
 from body import PWM
 
-import bigmodel.general_request as LLM
 import audio.audio_recognition as ASR
 
 
@@ -58,8 +57,10 @@ class ROBOT:
         :param host:主机地址
         """
         from bigmodel import QF_request as QF
+        from bigmodel import general_request as LLM
         self.MQTT_instance = None
         self.QF = QF
+        self.LLM = LLM
         self.host = host
         # 总体参数
         self.asr_offline = True
@@ -89,12 +90,11 @@ class ROBOT:
         self.thread_openweb = threading.Thread(target=self.web_open_thread, args=())
         self.thread_chat = threading.Thread(target=self.chat_thread, args=())
 
-
     def ASR_init(self):
         print("ASR模型组件初始化...需要较长时间...")
         asr_model = ASR.load_model()
         wav_path = './audio/wakeup.wav'
-        result = ASR.inference(wav_path, self.asr_model)
+        result = ASR.inference(wav_path, asr_model)
         print("ASR模型组件初始化完成！")
         return asr_model
 
@@ -197,44 +197,47 @@ class ROBOT:
                     AU.record(self.wake_time, 16000, filepath)
                     # threshold = 1 / self.wake_time
                     # if not AU.is_audio_silent("./audio/recorded_audio.wav", threshold):
-
-                    if not self.asr_offline:
-                        # 旧版在线语音识别
-                        pinyin = pypinyin.pinyin(AU.STT(filepath)[0], style=pypinyin.NORMAL)
+                    if AU.audio_is_silent(filepath):
+                        print("音频为空")
                     else:
-                        # 新版离线语音识别
-                        question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
-                        print(question)
-                        pinyin = pypinyin.pinyin(question, style=pypinyin.NORMAL)
-
-                    # 判断是否包含唤醒词
-                    if contains_sublist(pinyin, pypinyin.pinyin(self.name, style=pypinyin.NORMAL)):
-                        sleep = False
+                        if not self.asr_offline:
+                            # 旧版在线语音识别
+                            pinyin = pypinyin.pinyin(AU.STT(filepath)[0], style=pypinyin.NORMAL)
+                        else:
+                            # 新版离线语音识别
+                            question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
+                            print(question)
+                            pinyin = pypinyin.pinyin(question, style=pypinyin.NORMAL)
+                        # 判断是否包含唤醒词
+                        if contains_sublist(pinyin, pypinyin.pinyin(self.name, style=pypinyin.NORMAL)):
+                            sleep = False
                 elif not sleep:
                     cleanup()
                     AU.play("./audio/wakeup.wav", self.volume)  # 播放提示音
                     self.MQTT_instance.publish("other/status", "聆听")
                     AU.record(5, 16000, filepath)
-                    # if AU.record_until_silence(3, 16000, filepath, 7):
-                    # if not AU.is_audio_silent("./audio/recorded_audio.wav", 0.3):
-                    if not self.asr_offline:
-                        question = AU.STT(filepath)[0]
+                    # 静音判断
+                    if AU.audio_is_silent(filepath):
+                        print("音频为空")
                     else:
-                        question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
-                    if question == "":
-                        print("对话为空")
-                        pass
-                    elif "请你退下" in question:
-                        self.MQTT_instance.publish("other/status", "休眠")
-                        sleep = True
-                    else:
-                        if not self.chat_offline:
-                            self.QF.chat(self.model, question, father_robot=self)
+                        if not self.asr_offline:
+                            question = AU.STT(filepath)[0]
                         else:
-                            LLM.chat('qwen2.5_7b', question, father_robot=self)
-                        if not self.continue_talk:  # 如果不是连续对话，睡眠
-                            sleep = True
+                            question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
+                        if question == "":
+                            print("对话为空")
+                            pass
+                        elif "请你退下" in question:
                             self.MQTT_instance.publish("other/status", "休眠")
+                            sleep = True
+                        else:
+                            if not self.chat_offline:
+                                self.QF.chat(self.model, question, father_robot=self)
+                            else:
+                                self.LLM.chat('qwen2.5_32b_q2_k', question, father_robot=self)
+                            if not self.continue_talk:  # 如果不是连续对话，睡眠
+                                sleep = True
+                                self.MQTT_instance.publish("other/status", "休眠")
         else:
             while True:
                 input("按回车继续...")  # 这里程序会暂停，等待用户按下回车
