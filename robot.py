@@ -9,6 +9,7 @@ import webUI as UI
 from audio import audio_process as AU
 from body import PWM
 
+import bigmodel.general_request as LLM
 import audio.audio_recognition as ASR
 
 
@@ -61,15 +62,15 @@ class ROBOT:
         self.QF = QF
         self.host = host
         # 总体参数
-
-        self.asr_mode = None
-        self.asr_model = None
+        self.asr_offline = True
+        self.asr_model = self.ASR_init()
         self.mode = mode
         self.name = name
         self.wake_time = 3
         self.continue_talk = True
         self.volume = 1
         # 文字大模型API参数
+        self.chat_offline = True
         self.model = model
         self.chat_temperature = 0.95
         self.chat_top_p = 0.75
@@ -87,14 +88,15 @@ class ROBOT:
         self.PWM_instance1 = PWM.PWM()
         self.thread_openweb = threading.Thread(target=self.web_open_thread, args=())
         self.thread_chat = threading.Thread(target=self.chat_thread, args=())
-        self.ASR_init()
+
 
     def ASR_init(self):
         print("ASR模型组件初始化...需要较长时间...")
-        self.asr_model = ASR.load_model()
+        asr_model = ASR.load_model()
         wav_path = './audio/wakeup.wav'
         result = ASR.inference(wav_path, self.asr_model)
         print("ASR模型组件初始化完成！")
+        return asr_model
 
     def run(self):
         self.thread_openweb.start()
@@ -196,8 +198,7 @@ class ROBOT:
                     # threshold = 1 / self.wake_time
                     # if not AU.is_audio_silent("./audio/recorded_audio.wav", threshold):
 
-                    self.asr_mode = "offline"
-                    if self.asr_mode == "online":
+                    if not self.asr_offline:
                         # 旧版在线语音识别
                         pinyin = pypinyin.pinyin(AU.STT(filepath)[0], style=pypinyin.NORMAL)
                     else:
@@ -216,7 +217,10 @@ class ROBOT:
                     AU.record(5, 16000, filepath)
                     # if AU.record_until_silence(3, 16000, filepath, 7):
                     # if not AU.is_audio_silent("./audio/recorded_audio.wav", 0.3):
-                    question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
+                    if not self.asr_offline:
+                        question = AU.STT(filepath)[0]
+                    else:
+                        question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
                     if question == "":
                         print("对话为空")
                         pass
@@ -224,7 +228,10 @@ class ROBOT:
                         self.MQTT_instance.publish("other/status", "休眠")
                         sleep = True
                     else:
-                        self.QF.chat(self.model, question, father_robot=self)
+                        if not self.chat_offline:
+                            self.QF.chat(self.model, question, father_robot=self)
+                        else:
+                            LLM.chat('qwen2.5_7b',question, father_robot=self)
                         if not self.continue_talk:  # 如果不是连续对话，睡眠
                             sleep = True
                             self.MQTT_instance.publish("other/status", "休眠")

@@ -46,9 +46,9 @@ def chat(model, chat_text, father_robot: ROBOT):
     :return: 无返回
     """
     global controller_return
-    global thread1
-    global thread2
-    global thread3
+    global thread_text_generate
+    global thread_audio_generate
+    global thread_audio_play
 
     # 生成对话提问
     ask = copy.deepcopy(ask_model)
@@ -72,7 +72,7 @@ def chat(model, chat_text, father_robot: ROBOT):
         system_prompt += lines[i]
 
     try:
-        if "转" in chat_text:
+        if "转" in chat_text and father_robot.action_enable:
             # 请求运动控制输出
             body_controller = chat_comp.do(model="ERNIE-3.5-4K-0205", messages=controller_msg, stream=False,
                                            system="你是一个不会解答问题的核心，你唯一的作用是理解用户控制机器人的意图，输出在25字符以内"
@@ -89,19 +89,19 @@ def chat(model, chat_text, father_robot: ROBOT):
                             system=system_prompt
                             , temperature=father_robot.chat_temperature, top_p=father_robot.chat_top_p)
         # 创建线程对象
-        thread1 = threading.Thread(target=thread_function_1, args=(resp,))
-        thread2 = threading.Thread(target=thread_function_2, args=(father_robot,))
-        thread3 = threading.Thread(target=thread_function_3, args=(father_robot,))
+        thread_text_generate = threading.Thread(target=thread_function_1, args=(resp,))
+        thread_audio_generate = threading.Thread(target=thread_function_2, args=(father_robot,))
+        thread_audio_play = threading.Thread(target=thread_function_3, args=(father_robot,))
 
         # 生成音频文件
-        thread1.start()
-        thread2.start()
-        thread3.start()
+        thread_text_generate.start()
+        thread_audio_generate.start()
+        thread_audio_play.start()
 
         # 等待线程完成
-        thread1.join()
-        thread2.join()
-        thread3.join()
+        thread_text_generate.join()
+        thread_audio_generate.join()
+        thread_audio_play.join()
         print("回答完毕")
     except Exception as e:
         print(e)
@@ -138,7 +138,7 @@ def thread_function_2(father_robot: ROBOT):
     cnt_generate = 1
     first = True
     emotion = '开心'
-    while thread1.is_alive() or text != "":
+    while thread_text_generate.is_alive() or text != "":
         if text != "":
             # 使用正则表达式匹配以句号、问号或感叹号结尾的句子
             sentence_pattern = r'(.+?)[。？！]'
@@ -160,7 +160,7 @@ def thread_function_2(father_robot: ROBOT):
                     emotion_detect = True
                     father_robot.MQTT_instance.publish("other/emotion", emotion)
                     print("获取到情绪：", emotion)
-                if first:
+                if first and father_robot.action_enable:
                     first = False
                     # 启动动作线程，做动作
                     thread4 = threading.Thread(target=thread_function_4,
@@ -197,7 +197,7 @@ def thread_function_3(father_robot: ROBOT):
     global emotion_detect
     global first
 
-    while thread2.is_alive() or generated_file:
+    while thread_audio_generate.is_alive() or generated_file:
         if generated_file:
             # 播放所有生成的音频文件
             filename = generated_file[0]
