@@ -225,7 +225,7 @@ class ROBOT:
                         else:
                             question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
                         if question == "":
-                            print("对话为空")
+                            print("音频为空")
                             pass
                         elif "请你退下" in question:
                             self.MQTT_instance.publish("other/status", "休眠")

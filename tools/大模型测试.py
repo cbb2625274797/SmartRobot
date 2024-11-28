@@ -28,7 +28,7 @@ def chat(model, chat_text, round):
     lines = []
     controller_msg = []
     # 提取system prompt
-    with open('../server/system prompt', 'r', encoding='utf-8') as file:
+    with open('../bigmodel/system prompt', 'r', encoding='utf-8') as file:
         for line in file:
             lines.append(line.strip())
     system_prompt = lines[0] + "name" + "，"

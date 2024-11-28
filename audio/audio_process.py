@@ -35,7 +35,7 @@ def record(duration, samplerate, filepath):
     # print("录音已保存为 'recorded_audio.wav'")
 
 
-def audio_is_silent(filepath):
+def audio_is_silent(filepath, threashold1=-45, threashold2=-41):
     # 加载音频文件
     audio = AudioSegment.from_file(filepath)
 
@@ -50,8 +50,7 @@ def audio_is_silent(filepath):
         pass
 
     # 筛选音量较大的片段
-    threshold = -45  # 阈值，单位为dBFS
-    filtered_segments = [segment for segment, volume in zip(segments, segment_volumes) if volume > threshold]
+    filtered_segments = [segment for segment, volume in zip(segments, segment_volumes) if volume > threashold1]
 
     if len(filtered_segments) > 1:
         # 合并筛选后的片段
@@ -65,8 +64,7 @@ def audio_is_silent(filepath):
     print(f"过滤后的平均音量: {filtered_average_loudness} dBFS")
 
     # 判断音量是否超过某个阈值
-    threshold = -41  # 阈值，单位为dBFS
-    if filtered_average_loudness > threshold:
+    if filtered_average_loudness > threashold2:
         # print("音频音量达到")
         return False
     else:

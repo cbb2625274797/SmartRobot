@@ -61,8 +61,11 @@ class new_class:
         self.subscribe("motion/rarm")
         self.subscribe("motion/leg")
         self.subscribe("motion/foot")
+        self.subscribe("motion/action_enable")
         self.subscribe("other/wake_time")
         self.subscribe("other/volume")
+        self.subscribe("other/asr_offline")
+        self.subscribe("other/chat_offline")
         self.subscribe("other/drag", 2)
 
         # 线程控制
@@ -125,6 +128,8 @@ class new_class:
                     self.father_robot.set_chat_model("ERNIE-Lite-8K")
                 elif temp == "Yi-34B-Chat":
                     self.father_robot.set_chat_model("Yi-34B-Chat")
+                elif temp == "qwen2.5_32b_q2_k":
+                    self.father_robot.set_chat_model("qwen2.5_32b_q2_k")
         elif msg.topic == "chat/temperature":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.chat_temperature != temp:
@@ -133,6 +138,11 @@ class new_class:
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.chat_top_p != temp:
                 self.father_robot.chat_top_p = temp
+        elif msg.topic == "other/chat_offline":
+            if msg.payload.decode("utf-8") == "1":
+                self.father_robot.chat_offline = True
+            else:
+                self.father_robot.chat_offline = False
         elif msg.topic == "motion/larm":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.larm != temp:
@@ -153,6 +163,10 @@ class new_class:
             if self.father_robot.foot != temp:
                 self.father_robot.set_foot_rotation(temp, 2)
                 time.sleep(0.2)
+        elif msg.topic == "motion/action_enable":
+            temp = int(msg.payload.decode("utf-8"))
+            if self.father_robot.action_enable != bool(temp):
+                self.father_robot.action_enable = bool(temp)
         elif msg.topic == "other/wake_time":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.wake_time != temp:
@@ -166,6 +180,11 @@ class new_class:
                 self.drag = True
             else:
                 self.drag = False
+        elif msg.topic == "other/asr_offline":
+            if msg.payload.decode("utf-8") == "1":
+                self.father_robot.asr_offline = True
+            else:
+                self.father_robot.asr_offline = False
 
     def subscribe(self, topic_name, qos=0):
         self.client.subscribe(topic_name, qos=qos)
