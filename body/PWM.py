@@ -134,6 +134,16 @@ class PWM:
         :param speed:
         :return:
         """
+        # 同步转动
+        if num == 0:
+            self.Mqtt_ins.publish("motion1/foot", str(stop_angle))
+        elif num == 4:
+            self.Mqtt_ins.publish("motion1/body", str(stop_angle))
+        elif num == 8:
+            self.Mqtt_ins.publish("motion1/larm", str(stop_angle))
+        elif num == 12:
+            self.Mqtt_ins.publish("motion1/rarm", str(180 - stop_angle))
+
         # print(f'{num}通道从{start_angle}到{stop_angle}')
         if num == 0:
             start_angle = start_angle + 9
@@ -150,33 +160,19 @@ class PWM:
             start_angle = 180 - start_angle
             stop_angle = 180 - stop_angle
 
+        # 从开始位置运动
         self.set_Angle(num, start_angle)
+        # 生成运动曲线
         if start_angle < stop_angle:
             float_array = bezier.angle_bezier_clamped(start_angle, stop_angle, start_angle * 1.1, stop_angle * 0.8,
                                                       round(10 * abs(start_angle - stop_angle) / speed))
         else:
             float_array = bezier.angle_bezier_clamped(start_angle, stop_angle, start_angle * 0.75, stop_angle * 1.1,
                                                       round(10 * abs(start_angle - stop_angle) / speed))
-        # 同步转动
-        if num == 0:
-            self.Mqtt_ins.publish("motion1/foot", str(stop_angle))
-        elif num == 4:
-            self.Mqtt_ins.publish("motion1/body", str(stop_angle))
-        elif num == 8:
-            self.Mqtt_ins.publish("motion1/larm", str(stop_angle))
-        elif num == 12:
-            self.Mqtt_ins.publish("motion1/rarm", str(180 - stop_angle))
+        # 执行运动曲线
         for i in float_array:
             self.set_Angle(num, i)
 
-    def test(self):
-        self.setPWMFreq(50)
-        # while 1:
-        for j in range(0, 16, 4):
-            for i in range(89, 90):
-                self.set_Angle(j, i)
-                # time.sleep(0.1)
-                print(f"{j}通道{i}角度")
 
 
 if __name__ == '__main__':
