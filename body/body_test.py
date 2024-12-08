@@ -136,17 +136,17 @@ class PWM:
         """
         # print(f'{num}通道从{start_angle}到{stop_angle}')
         if num == 0:
-            start_angle = start_angle + 9
-            stop_angle = stop_angle + 9
-        elif num == 4:
-            start_angle = start_angle + 13
-            stop_angle = stop_angle + 13
-        elif num == 8:
-            start_angle = start_angle + 2
-            stop_angle = stop_angle + 2
-        elif num == 12:
             start_angle = start_angle + 5
             stop_angle = stop_angle + 5
+        elif num == 4:
+            start_angle = start_angle - 3
+            stop_angle = stop_angle - 3
+        elif num == 8:
+            start_angle = start_angle - 5
+            stop_angle = stop_angle - 5
+        elif num == 12:
+            start_angle = start_angle - 2
+            stop_angle = stop_angle - 2
             start_angle = 180 - start_angle
             stop_angle = 180 - stop_angle
 
@@ -164,13 +164,13 @@ class PWM:
             for j in range(0, 16, 1):
                 for i in range(90, 91):
                     if j == 0:
-                        self.set_Angle(j, i+9)
-                    elif j == 4:
-                        self.set_Angle(j, i+13)
-                    elif j == 8:
-                        self.set_Angle(j, i+2)
-                    elif j == 12:
                         self.set_Angle(j, i+5)
+                    elif j == 4:
+                        self.set_Angle(j, i-3)
+                    elif j == 8:
+                        self.set_Angle(j, i-5)
+                    elif j == 12:
+                        self.set_Angle(j, i-2)
                     else:
                         self.set_Angle(j, i)
                     # self.angle_switch(j, i, i, 1)

@@ -11,7 +11,7 @@ from robot import ROBOT
 import body.action as action
 import EmotionEngine.EmotionJudge as EMOTION
 
-LLM_host = '172.29.0.3'
+LLM_host = '192.168.31.3'
 port = 11434
 LLM_name = 'qwen2.5_32b_q2_k'
 content = "你好，请你生成1000字的文章，关于人工智能"
@@ -28,15 +28,15 @@ reply_model = {
 msgs = []
 controller_msg = []
 
-url = 'http://' + LLM_host + ':' + str(port) + '/api/chat'
+url = 'http://' + LLM_host + ':' + str(port) + '/api/chat/'
 
 headers = {'Content-Type': 'application/json'}
 example_post_data = {
     "model": LLM_name,
     "messages": [
         {
-            "role": "user",
-            "content": "你好，请你介绍下你自己"
+            # "role": "user",
+            # "content": "你好，请你介绍下你自己"
         }
     ],
     "stream": True,
@@ -71,7 +71,7 @@ def chat(model, chat_text, father_robot: ROBOT):
     name = father_robot.name if father_robot is not None else "默认名"
     lines = []
     # 提取system prompt
-    with open('./server/system prompt', 'r', encoding='utf-8') as file:
+    with open('./bigmodel/system prompt', 'r', encoding='utf-8') as file:
         for line in file:
             lines.append(line.strip())
     system_prompt = lines[0] + name + "，"

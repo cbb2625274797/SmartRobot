@@ -234,7 +234,7 @@ class ROBOT:
                             if not self.chat_offline:
                                 self.QF.chat(self.model, question, father_robot=self)
                             else:
-                                self.LLM.chat('qwen2.5_32b_q2_k', question, father_robot=self)
+                                self.LLM.chat(self.model, question, father_robot=self)
                             if not self.continue_talk:  # 如果不是连续对话，睡眠
                                 sleep = True
                                 self.MQTT_instance.publish("other/status", "休眠")
