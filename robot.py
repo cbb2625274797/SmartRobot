@@ -51,16 +51,14 @@ class ROBOT:
                  mode: str = "text"):
         """
         进行初始化
-        :param model:使用的千帆模型
+        :param model:使用的模型
         :param name:机器人名称/唤醒词
         :param mode:text/sound，控制是否语音
         :param host:主机地址
         """
-        from bigmodel import QF_request as QF
-        from bigmodel import general_request as LLM
+        from bigmodel import large_language_model_interface as LLM_interface
         self.MQTT_instance = None
-        self.QF = QF
-        self.LLM = LLM
+        self.LLM_interface = LLM_interface
         self.host = host
         # 总体参数
         self.asr_offline = True
@@ -232,9 +230,9 @@ class ROBOT:
                             sleep = True
                         else:
                             if not self.chat_offline:
-                                self.QF.chat(self.model, question, father_robot=self)
+                                self.LLM_interface.chat(self.model, question, self)
                             else:
-                                self.LLM.chat(self.model, question, father_robot=self)
+                                self.LLM_interface.chat(self.model, question, self)
                             if not self.continue_talk:  # 如果不是连续对话，睡眠
                                 sleep = True
                                 self.MQTT_instance.publish("other/status", "休眠")
@@ -244,7 +242,10 @@ class ROBOT:
                 cleanup()
                 AU.play("./audio/wakeup.wav", self.volume)  # 播放提示音
                 question = input("请输入你的提问:\n")
-                self.QF.chat(self.model, question, father_robot=self)
+                if not self.chat_offline:
+                    self.LLM_interface.chat(self.model, question, self)
+                else:
+                    self.LLM_interface.chat(self.model, question, self)
 
     def web_open_thread(self):
         """

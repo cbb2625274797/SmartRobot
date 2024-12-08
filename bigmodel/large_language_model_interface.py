@@ -42,7 +42,7 @@ emotion_detect = False
 text_generating = False
 audio_generating = True
 ######################本地模型运行环境###########################
-LLM_host = '172.29.0.3'
+LLM_host = '192.168.31.3'
 port = 11434
 LLM_name = 'qwen2.5_32b_q2_k'
 
@@ -52,10 +52,10 @@ headers = {'Content-Type': 'application/json'}
 example_post_data = {
     "model": LLM_name,
     "messages": [
-        {
-            "role": "user",
-            "content": "你好，请你介绍下你自己"
-        }
+        # {
+        #     "role": "user",
+        #     "content": "你好，请你介绍下你自己"
+        # }
     ],
     "stream": True,
     "suffix": "    return result",
@@ -78,7 +78,6 @@ def chat(model, chat_text, father_robot: ROBOT):
     # 生成对话提问
     ask = copy.deepcopy(ask_model)
     ask["content"] = chat_text
-    msgs.append(ask)
     # 生成控制提问
     controller_ask = copy.deepcopy(ask_model)
     controller_ask["content"] = chat_text
@@ -88,18 +87,19 @@ def chat(model, chat_text, father_robot: ROBOT):
     name = father_robot.name if father_robot is not None else "默认名"
     lines = []
     # 提取system prompt
-    with open('./server/system prompt', 'r', encoding='utf-8') as file:
+    with open('./bigmodel/system prompt', 'r', encoding='utf-8') as file:
         for line in file:
             lines.append(line.strip())
-    system_prompt = lines[0] + name + "，"
-    for i in range(1, len(lines)):
-        system_prompt += lines[i]
-
     try:
         if father_robot.chat_offline:
-            resp,controller_return= get_ollama_resp(model,chat_text,father_robot)
+            example_post_data['messages'].append(ask)  # ollama模型
+            resp, controller_return = get_ollama_resp(model, chat_text, father_robot)
         else:
-            resp,controller_return= get_wenxin_resp(model,chat_text,father_robot,system_prompt)
+            msgs.append(ask)  # 文心模型
+            system_prompt = lines[0] + name + "，"
+            for i in range(1, len(lines)):
+                system_prompt += lines[i]
+            resp, controller_return = get_wenxin_resp(model, chat_text, father_robot, system_prompt)
         # 创建线程对象
         thread_text_generate = threading.Thread(target=thread_function_1_local, args=(resp,))
         thread_audio_generate = threading.Thread(target=thread_function_2, args=(father_robot,))
@@ -119,7 +119,7 @@ def chat(model, chat_text, father_robot: ROBOT):
         print(e)
 
 
-def get_ollama_resp(model,chat_text,father_robot):
+def get_ollama_resp(model, chat_text, father_robot):
     controller_return = ""
     if "转" in chat_text and father_robot.action_enable:
         # 请求运动控制输出
@@ -136,9 +136,10 @@ def get_ollama_resp(model,chat_text,father_robot):
     # 请求其他输出
     example_post_data['model'] = model
     resp = requests.post(url, data=json.dumps(example_post_data), headers=headers, stream=True)
-    return resp,controller_return
+    return resp, controller_return
 
-def get_wenxin_resp(model,chat_text,father_robot,system_prompt):
+
+def get_wenxin_resp(model, chat_text, father_robot, system_prompt):
     controller_return = ""
     if "转" in chat_text and father_robot.action_enable:
         # 请求运动控制输出
@@ -156,7 +157,9 @@ def get_wenxin_resp(model,chat_text,father_robot,system_prompt):
     resp = chat_comp.do(model=model, messages=msgs, stream=True,
                         system=system_prompt
                         , temperature=father_robot.chat_temperature, top_p=father_robot.chat_top_p)
-    return resp,controller_return
+    return resp, controller_return
+
+
 # 定义第一个线程是提取输出结果
 def thread_function_1_wenxin(resp):
     global need_read
@@ -174,6 +177,7 @@ def thread_function_1_wenxin(resp):
     reply["content"] = reply_text
     msgs.append(reply)
     print(msgs)
+
 
 def thread_function_1_local(resp):
     """

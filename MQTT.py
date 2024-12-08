@@ -34,7 +34,7 @@ def stop_server(cmd_file_path):
 
 
 class new_class:
-    def __init__(self, host="192.168.21.193", port=1883):
+    def __init__(self, host="192.168.31.3", port=1883):
         # 创建一个MQTT客户端实例
         self.drag = False
         self.client = mqtt.Client("local1")
