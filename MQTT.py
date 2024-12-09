@@ -137,22 +137,22 @@ class new_class:
         elif msg.topic == "motion/larm":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.larm != temp:
-                self.father_robot.set_larm_rotation(temp, 2)
+                self.father_robot.set_larm_rotation(temp, 3)
                 time.sleep(0.2)
         elif msg.topic == "motion/rarm":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.rarm != temp:
-                self.father_robot.set_rarm_rotation(temp, 2)
+                self.father_robot.set_rarm_rotation(temp, 3)
                 time.sleep(0.2)
         elif msg.topic == "motion/body":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.body != temp:
-                self.father_robot.set_body_rotation(temp, 2)
+                self.father_robot.set_body_rotation(temp, 3)
                 time.sleep(0.2)
         elif msg.topic == "motion/foot":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.foot != temp:
-                self.father_robot.set_foot_rotation(temp, 2)
+                self.father_robot.set_foot_rotation(temp, 3)
                 time.sleep(0.2)
         elif msg.topic == "motion/action_enable":
             temp = int(msg.payload.decode("utf-8"))
