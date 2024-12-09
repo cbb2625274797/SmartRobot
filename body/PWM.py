@@ -6,6 +6,7 @@ import argparse
 import time
 
 import body.bezier as bezier
+
 # import bezier
 parser = argparse.ArgumentParser(description='i2c')
 parser.add_argument("--device", type=str, default="/dev/i2c-2", help='specify the i2c node')
@@ -146,17 +147,17 @@ class PWM:
 
         # print(f'{num}通道从{start_angle}到{stop_angle}')
         if num == 0:
-            start_angle = start_angle + 9
-            stop_angle = stop_angle + 9
-        elif num == 4:
-            start_angle = start_angle + 13
-            stop_angle = stop_angle + 13
-        elif num == 8:
-            start_angle = start_angle + 2
-            stop_angle = stop_angle + 2
-        elif num == 12:
             start_angle = start_angle + 5
             stop_angle = stop_angle + 5
+        elif num == 4:
+            start_angle = start_angle - 3
+            stop_angle = stop_angle - 3
+        elif num == 8:
+            start_angle = start_angle - 5
+            stop_angle = stop_angle - 5
+        elif num == 12:
+            start_angle = start_angle - 2
+            stop_angle = stop_angle - 2
             start_angle = 180 - start_angle
             stop_angle = 180 - stop_angle
 
@@ -172,7 +173,6 @@ class PWM:
         # 执行运动曲线
         for i in float_array:
             self.set_Angle(num, i)
-
 
 
 if __name__ == '__main__':
