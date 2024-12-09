@@ -112,7 +112,7 @@ class ROBOT:
         :return:
         """
         print("身体旋转到", target_angle, "度")
-        self.PWM_instance1.angle_switch(0, self.foot, target_angle, speed)
+        self.PWM_instance1.angle_switch(4, self.foot, target_angle, speed)
         self.foot = target_angle
         return True
 
@@ -121,7 +121,7 @@ class ROBOT:
         进行足部旋转
         """
         print("足部旋转到", target_angle, "度")
-        self.PWM_instance1.angle_switch(4, self.body, target_angle, speed)
+        self.PWM_instance1.angle_switch(0, self.body, target_angle, speed)
         self.body = target_angle
         return True
 

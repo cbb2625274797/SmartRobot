@@ -59,7 +59,7 @@ class new_class:
         self.subscribe("chat/top_p")
         self.subscribe("motion/larm")
         self.subscribe("motion/rarm")
-        self.subscribe("motion/leg")
+        self.subscribe("motion/body")
         self.subscribe("motion/foot")
         self.subscribe("motion/action_enable")
         self.subscribe("other/wake_time")
@@ -120,16 +120,7 @@ class new_class:
         elif msg.topic == "chat/model":
             temp = msg.payload.decode("utf-8")
             if self.father_robot.model != temp:
-                if temp == "ERNIE-Bot-4":
-                    self.father_robot.set_chat_model("ERNIE-4.0-8K")
-                elif temp == "ERNIE-Bot-3.5":
-                    self.father_robot.set_chat_model("ERNIE-3.5-4K-0205")
-                elif temp == "ERNIE-Bot-turbo":
-                    self.father_robot.set_chat_model("ERNIE-Lite-8K")
-                elif temp == "Yi-34B-Chat":
-                    self.father_robot.set_chat_model("Yi-34B-Chat")
-                elif temp == "qwen2.5_32b_q2_k":
-                    self.father_robot.set_chat_model("qwen2.5_32b_q2_k")
+                self.father_robot.set_chat_model(temp)
         elif msg.topic == "chat/temperature":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.chat_temperature != temp:
@@ -153,7 +144,7 @@ class new_class:
             if self.father_robot.rarm != temp:
                 self.father_robot.set_rarm_rotation(temp, 2)
                 time.sleep(0.2)
-        elif msg.topic == "motion/leg":
+        elif msg.topic == "motion/body":
             temp = float(msg.payload.decode("utf-8"))
             if self.father_robot.body != temp:
                 self.father_robot.set_body_rotation(temp, 2)
