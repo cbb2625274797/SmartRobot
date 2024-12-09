@@ -51,7 +51,6 @@ class PWM:
             self.reset()
             self.setPWMFreq(50)
             self.Mqtt_ins = None
-        self.lock = False
 
     def write_byte(self, reg, byte):
         try:
@@ -172,27 +171,23 @@ class PWM:
             float_array = bezier.angle_bezier_clamped(start_angle, stop_angle, start_angle * 0.75, stop_angle * 1.1,
                                                       round(10 * abs(start_angle - stop_angle) / speed))
 
-        # 设置运动锁，防止多次运动干扰
-        if not self.lock:
-            self.lock = True
-            # 执行运动曲线
-            if num == 0:
-                for i in float_array:
-                    self.Mqtt_ins.father_robot.foot = i
-                    self.set_Angle(num, i)
-            if num == 4:
-                for i in float_array:
-                    self.Mqtt_ins.father_robot.body = i
-                    self.set_Angle(num, i)
-            if num == 8:
-                for i in float_array:
-                    self.Mqtt_ins.father_robot.larm = i
-                    self.set_Angle(num, i)
-            if num == 12:
-                for i in float_array:
-                    self.Mqtt_ins.father_robot.rarm = i
-                    self.set_Angle(num, i)
-        self.lock = False
+        # 执行运动曲线
+        if num == 0:
+            for i in float_array:
+                self.Mqtt_ins.father_robot.foot = i
+                self.set_Angle(num, i)
+        if num == 4:
+            for i in float_array:
+                self.Mqtt_ins.father_robot.body = i
+                self.set_Angle(num, i)
+        if num == 8:
+            for i in float_array:
+                self.Mqtt_ins.father_robot.larm = i
+                self.set_Angle(num, i)
+        if num == 12:
+            for i in float_array:
+                self.Mqtt_ins.father_robot.rarm = i
+                self.set_Angle(num, i)
 
 
 if __name__ == '__main__':
