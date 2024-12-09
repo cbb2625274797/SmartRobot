@@ -113,7 +113,6 @@ class ROBOT:
         """
         print("身体旋转到", target_angle, "度")
         self.PWM_instance1.angle_switch(4, self.foot, target_angle, speed)
-        self.foot = target_angle
         return True
 
     def set_foot_rotation(self, target_angle: float, speed: float = 1):
@@ -122,7 +121,6 @@ class ROBOT:
         """
         print("足部旋转到", target_angle, "度")
         self.PWM_instance1.angle_switch(0, self.body, target_angle, speed)
-        self.body = target_angle
         return True
 
     def set_larm_rotation(self, target_angle: float, speed: float = 1):
@@ -131,7 +129,6 @@ class ROBOT:
         """
         print("左臂旋转到", target_angle, "度")
         self.PWM_instance1.angle_switch(8, self.larm, target_angle, speed)
-        self.larm = target_angle
         return True
 
     def set_rarm_rotation(self, target_angle: float, speed: float = 1):
@@ -140,7 +137,6 @@ class ROBOT:
         """
         print("右臂旋转到", target_angle, "度")
         self.PWM_instance1.angle_switch(12, self.rarm, target_angle, speed)
-        self.rarm = target_angle
         return True
 
     def set_chat_model(self, model: str):
