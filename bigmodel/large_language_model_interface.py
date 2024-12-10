@@ -39,7 +39,6 @@ sentences = []
 generated_file = []
 controller_return = ""
 emotion_detect = False
-text_generating = False
 audio_generating = True
 ######################本地模型运行环境###########################
 LLM_host = '192.168.31.3'
@@ -61,6 +60,7 @@ example_post_data = {
     "suffix": "    return result",
     # "format": "json",
 }
+chat_post_data = {}
 
 
 def chat(model, chat_text, father_robot: ROBOT):
@@ -74,15 +74,11 @@ def chat(model, chat_text, father_robot: ROBOT):
     global thread_text_generate
     global thread_audio_generate
     global thread_audio_play
+    global chat_post_data
 
-    # 生成对话提问
+    # 生成通用对话语句
     ask = copy.deepcopy(ask_model)
     ask["content"] = chat_text
-    # 生成控制提问
-    controller_ask = copy.deepcopy(ask_model)
-    controller_ask["content"] = chat_text
-    controller_msg.clear()
-    controller_msg.append(controller_ask)
 
     name = father_robot.name if father_robot is not None else "默认名"
     lines = []
@@ -92,14 +88,12 @@ def chat(model, chat_text, father_robot: ROBOT):
             lines.append(line.strip())
     try:
         if father_robot.chat_offline:
-            example_post_data['messages'].append(ask)  # ollama模型
-            resp, controller_return = get_ollama_resp(model, chat_text, father_robot)
+            resp, controller_return = get_ollama_resp(ask,model, chat_text, father_robot)
         else:
-            msgs.append(ask)  # 文心模型
             system_prompt = lines[0] + name + "，"
             for i in range(1, len(lines)):
                 system_prompt += lines[i]
-            resp, controller_return = get_wenxin_resp(model, chat_text, father_robot, system_prompt)
+            resp, controller_return = get_wenxin_resp(ask,model, chat_text, father_robot, system_prompt)
         # 创建线程对象
         thread_text_generate = threading.Thread(target=thread_function_1_local, args=(resp,))
         thread_audio_generate = threading.Thread(target=thread_function_2, args=(father_robot,))
@@ -119,27 +113,41 @@ def chat(model, chat_text, father_robot: ROBOT):
         print(e)
 
 
-def get_ollama_resp(model, chat_text, father_robot):
+def get_ollama_resp(ask,model, chat_text, father_robot):
+    # 生成控制提问
+    controller_ask = copy.deepcopy(ask_model)
+    controller_ask["content"] = chat_text
+    controller_post_data = copy.deepcopy(example_post_data)
+    controller_post_data['message'].append(controller_ask)
+
+    # 生成对话提问
+    chat_post_data = copy.deepcopy(example_post_data)
+    chat_post_data['messages'].append(ask)
+
     controller_return = ""
     if "转" in chat_text and father_robot.action_enable:
         # 请求运动控制输出
-        body_controller = requests.post(url, data=json.dumps(controller_msg), headers=headers, stream=False)
-        # system="你是一个不会解答问题的核心，你唯一的作用是理解用户控制机器人的意图，输出在25字符以内"
-        #        "机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，阈值为0到180度，"
-        #        "你唯一的作用是理解用户控制机器人的意图，输出为格式化的文本。输出示例如下：‘~/部位/度数。’；"
-        #        "当有同时输出多个意图时，输出格式如下：‘~/部位1/度数1。~/部位2/度数2"
-        #        "。’，除此之外不要输出其他东西，当角度超过阈值不输出任何东西"
+        body_controller = requests.post(url, data=json.dumps(controller_post_data), headers=headers, stream=False)
         tmp_res = json.loads(body_controller.content.decode('utf-8'))
         controller_return = tmp_res['message']['content']
         print(controller_return)
 
-    # 请求其他输出
-    example_post_data['model'] = model
-    resp = requests.post(url, data=json.dumps(example_post_data), headers=headers, stream=True)
+    # 请求对话输出
+    chat_post_data['model'] = model
+    resp = requests.post(url, data=json.dumps(chat_post_data), headers=headers, stream=True)
     return resp, controller_return
 
 
-def get_wenxin_resp(model, chat_text, father_robot, system_prompt):
+def get_wenxin_resp(ask,model, chat_text, father_robot, system_prompt):
+    # 生成控制提问
+    controller_ask = copy.deepcopy(ask_model)
+    controller_ask["content"] = chat_text
+    controller_msg.clear()
+    controller_msg.append(controller_ask)
+
+    # 生成对话提问
+    msgs.append(ask)
+
     controller_return = ""
     if "转" in chat_text and father_robot.action_enable:
         # 请求运动控制输出
@@ -153,7 +161,7 @@ def get_wenxin_resp(model, chat_text, father_robot, system_prompt):
         controller_return = body_controller.get("result")
         print(controller_return)
 
-    # 请求其他输出
+    # 请求对话输出
     resp = chat_comp.do(model=model, messages=msgs, stream=True,
                         system=system_prompt
                         , temperature=father_robot.chat_temperature, top_p=father_robot.chat_top_p)
@@ -163,7 +171,6 @@ def get_wenxin_resp(model, chat_text, father_robot, system_prompt):
 # 定义第一个线程是提取输出结果
 def thread_function_1_wenxin(resp):
     global need_read
-    global text_generating
     global text
 
     reply_text = ""
@@ -186,7 +193,6 @@ def thread_function_1_local(resp):
     :return:
     """
     global need_read
-    global text_generating
     global text
 
     reply_text = ""
@@ -212,8 +218,8 @@ def thread_function_1_local(resp):
 
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
-    example_post_data["messages"].append(reply)
-    print(example_post_data["messages"])
+    chat_post_data["messages"].append(reply)
+    print(chat_post_data["messages"])
 
 
 # 第二线程用于分段+生成
