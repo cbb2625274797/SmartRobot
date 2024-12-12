@@ -43,23 +43,45 @@ audio_generating = True
 ######################本地模型运行环境###########################
 LLM_host = '192.168.31.3'
 port = 11434
-LLM_name = 'qwen2.5_32b_q2_k'
 
 url = 'http://' + LLM_host + ':' + str(port) + '/api/chat'
 
 headers = {'Content-Type': 'application/json'}
 example_post_data = {
-    "model": LLM_name,
+    "model": "",
     "messages": [
-        # {
-        #     "role": "user",
-        #     "content": "你好，请你介绍下你自己"
-        # }
     ],
     "stream": True,
     "suffix": "    return result",
     # "format": "json",
 }
+
+
+def create_motion_data(model, chat_text):
+    example_motion_data = {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": """
+                        你是一个不会解答问题的核心，你唯一的作用是理解用户控制机器人的意图，机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，阈值为0到180度，
+                        你唯一的作用是理解用户控制机器人的意图，输出为格式化的文本。输出示例如下：‘~/部位/度数。’；
+                        当有同时输出多个意图时，输出格式如下：‘~/部位1/度数1。~/部位2/度数2。’，除此之外不要输出其他东西，当角度超过阈值不输出任何东西;
+                        现在，用户说:
+                        """
+                           + chat_text +
+                           """
+                        请你输出他的控制意图。
+                        """
+            },
+        ],
+        "stream": False,
+        "suffix": "    return result",
+        # "format": "json",
+    }
+    return example_motion_data
+
+
 chat_post_data = {}
 
 
@@ -88,12 +110,12 @@ def chat(model, chat_text, father_robot: ROBOT):
             lines.append(line.strip())
     try:
         if father_robot.chat_offline:
-            resp, controller_return = get_ollama_resp(ask,model, chat_text, father_robot)
+            resp, controller_return = get_ollama_resp(ask, model, chat_text, father_robot)
         else:
             system_prompt = lines[0] + name + "，"
             for i in range(1, len(lines)):
                 system_prompt += lines[i]
-            resp, controller_return = get_wenxin_resp(ask,model, chat_text, father_robot, system_prompt)
+            resp, controller_return = get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt)
         # 创建线程对象
         thread_text_generate = threading.Thread(target=thread_function_1_local, args=(resp,))
         thread_audio_generate = threading.Thread(target=thread_function_2, args=(father_robot,))
@@ -113,12 +135,10 @@ def chat(model, chat_text, father_robot: ROBOT):
         print(e)
 
 
-def get_ollama_resp(ask,model, chat_text, father_robot):
+def get_ollama_resp(ask, model, chat_text, father_robot):
+    global chat_post_data
     # 生成控制提问
-    controller_ask = copy.deepcopy(ask_model)
-    controller_ask["content"] = chat_text
-    controller_post_data = copy.deepcopy(example_post_data)
-    controller_post_data['message'].append(controller_ask)
+    example_motion_data = create_motion_data(model, chat_text)
 
     # 生成对话提问
     chat_post_data = copy.deepcopy(example_post_data)
@@ -127,7 +147,7 @@ def get_ollama_resp(ask,model, chat_text, father_robot):
     controller_return = ""
     if "转" in chat_text and father_robot.action_enable:
         # 请求运动控制输出
-        body_controller = requests.post(url, data=json.dumps(controller_post_data), headers=headers, stream=False)
+        body_controller = requests.post(url, data=json.dumps(example_motion_data), headers=headers, stream=False)
         tmp_res = json.loads(body_controller.content.decode('utf-8'))
         controller_return = tmp_res['message']['content']
         print(controller_return)
@@ -138,7 +158,7 @@ def get_ollama_resp(ask,model, chat_text, father_robot):
     return resp, controller_return
 
 
-def get_wenxin_resp(ask,model, chat_text, father_robot, system_prompt):
+def get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt):
     # 生成控制提问
     controller_ask = copy.deepcopy(ask_model)
     controller_ask["content"] = chat_text
@@ -194,6 +214,7 @@ def thread_function_1_local(resp):
     """
     global need_read
     global text
+    global chat_post_data
 
     reply_text = ""
     if resp.status_code == 200:
@@ -251,7 +272,7 @@ def thread_function_2(father_robot: ROBOT):
                 # 获取情绪
                 emotion_detect = False
                 if '-' in one_sentence[:5] and '/' in one_sentence[:5]:
-                    print(one_sentence)
+                    # print(one_sentence)
                     emotion = EMOTION.get_emotion(one_sentence)
                     emotion_detect = True
                     father_robot.MQTT_instance.publish("other/emotion", emotion)
@@ -263,7 +284,6 @@ def thread_function_2(father_robot: ROBOT):
                                                args=(father_robot, controller_return, emotion))
                     thread4.start()
 
-                father_robot.MQTT_instance.publish("other/emotion", emotion)
                 # 定义正则表达式模式
                 pattern1 = r"-\s*/\s*(开心|害怕|生气|失落|好奇|戏谑)\s*"
                 # 使用正则表达式替换
