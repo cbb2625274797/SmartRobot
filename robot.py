@@ -79,7 +79,7 @@ class ROBOT:
         self.sound_temperature = 1
         self.sound_top_k = 0.9
         # 姿态参数
-        self.action_enable = False
+        self.action_enable = True
         self.larm = 90
         self.rarm = 90
         self.body = 90

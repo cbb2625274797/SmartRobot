@@ -40,6 +40,7 @@ generated_file = []
 controller_return = ""
 emotion_detect = False
 audio_generating = True
+audio_instruct= False
 ######################本地模型运行环境###########################
 LLM_host = '192.168.31.3'
 port = 11434
@@ -64,9 +65,10 @@ def create_motion_data(model, chat_text):
             {
                 "role": "user",
                 "content": """
-                        你是一个不会解答问题的核心，你唯一的作用是理解用户控制机器人的意图，机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，阈值为0到180度，
-                        你唯一的作用是理解用户控制机器人的意图，输出为格式化的文本。输出示例如下：‘~/部位/度数。’；
-                        当有同时输出多个意图时，输出格式如下：‘~/部位1/度数1。~/部位2/度数2。’，除此之外不要输出其他东西，当角度超过阈值不输出任何东西;
+                        你的唯一作用是理解用户控制机器人的意图，机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，
+                        可以在10到170度内运动，当角度超过阈值不要输出任何东西;
+                        其他时候请你输出为格式化的文本。输出示例如下：‘~/部位/度数。’，度数用阿拉伯数字表示；
+                        当有同时输出多个意图时，输出格式如下：‘~/部位1/度数1。~/部位2/度数2。’，除此之外不要输出其他东西，
                         现在，用户说:
                         """
                            + chat_text +
@@ -137,6 +139,7 @@ def chat(model, chat_text, father_robot: ROBOT):
 
 def get_ollama_resp(ask, model, chat_text, father_robot):
     global chat_post_data
+    global audio_instruct
     # 生成控制提问
     example_motion_data = create_motion_data(model, chat_text)
 
@@ -146,11 +149,12 @@ def get_ollama_resp(ask, model, chat_text, father_robot):
 
     controller_return = ""
     if "转" in chat_text and father_robot.action_enable:
+        audio_instruct = True
         # 请求运动控制输出
         body_controller = requests.post(url, data=json.dumps(example_motion_data), headers=headers, stream=False)
         tmp_res = json.loads(body_controller.content.decode('utf-8'))
         controller_return = tmp_res['message']['content']
-        print(controller_return)
+        print("contr return:", controller_return)
 
     # 请求对话输出
     chat_post_data['model'] = model
@@ -159,6 +163,8 @@ def get_ollama_resp(ask, model, chat_text, father_robot):
 
 
 def get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt):
+    global msgs
+    global audio_instruct
     # 生成控制提问
     controller_ask = copy.deepcopy(ask_model)
     controller_ask["content"] = chat_text
@@ -170,6 +176,7 @@ def get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt):
 
     controller_return = ""
     if "转" in chat_text and father_robot.action_enable:
+        audio_instruct = True
         # 请求运动控制输出
         body_controller = chat_comp.do(model="ERNIE-3.5-4K-0205", messages=controller_msg, stream=False,
                                        system="你是一个不会解答问题的核心，你唯一的作用是理解用户控制机器人的意图，输出在25字符以内"
@@ -179,7 +186,7 @@ def get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt):
                                               "。’，除此之外不要输出其他东西，当角度超过阈值不输出任何东西"
                                        , temperature=0.4, top_p=0.4)
         controller_return = body_controller.get("result")
-        print(controller_return)
+        print("contr return:", controller_return)
 
     # 请求对话输出
     resp = chat_comp.do(model=model, messages=msgs, stream=True,
