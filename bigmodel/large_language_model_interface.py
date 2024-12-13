@@ -40,12 +40,12 @@ generated_file = []
 controller_return = ""
 emotion_detect = False
 audio_generating = True
-audio_instruct= False
+audio_instruct = False
 ######################本地模型运行环境###########################
-LLM_host = '192.168.31.3'
-port = 11434
-
-url = 'http://' + LLM_host + ':' + str(port) + '/api/chat'
+# 打开并读取JSON文件
+with open('ipconfig.json', 'r', encoding='utf-8') as file:
+    ipconfig = json.load(file)
+url = 'http://' + ipconfig["LLM_host"] + ':' + ipconfig["LLM_port"] + '/api/chat'
 
 headers = {'Content-Type': 'application/json'}
 example_post_data = {
@@ -64,11 +64,12 @@ example_post_data = {
 def create_motion_data(model, chat_text):
     example_motion_data = {
         "model": model,
+        "system": "你是一个机器人的运动核心，你唯一的作用是理解用户的意图，不要输出其他东西",
         "messages": [
             {
                 "role": "user",
                 "content": """
-                        你的唯一作用是理解用户控制机器人的意图，机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，
+                        机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，默认都是90度，
                         可以在10到170度内运动，一般情况下你需要输出一个json，将三个部位的度数用阿拉伯数字表示；
                         在角度小于10度或者超过170度的时候请你不要输出。
                         现在，用户说:
@@ -80,27 +81,27 @@ def create_motion_data(model, chat_text):
             },
         ],
         "stream": False,
-        # "options": {
-        #   "temperature": 0
-        # },
+        "options": {
+            "temperature": 0
+        },
         "suffix": "    return result",
         "format": {
             "type": "object",
             "properties": {
-              "身体角度": {
-                "type": "integer"
-              },
-              "左臂角度": {
-                "type": "integer"
-              },
-              "右臂角度": {
-                "type": "integer"
-              }
+                "身体": {
+                    "type": "integer"
+                },
+                "左臂": {
+                    "type": "integer"
+                },
+                "右臂": {
+                    "type": "integer"
+                }
             },
             "required": [
-              "身体角度",
-              "左臂角度",
-              "右臂角度"
+                "身体",
+                "左臂",
+                "右臂"
             ]
         },
     }
@@ -178,7 +179,6 @@ def get_ollama_resp(ask, model, chat_text, father_robot):
         tmp_res = json.loads(body_controller.content.decode('utf-8'))
         controller_return = tmp_res['message']['content']
         print("控制模块返回:", controller_return)
-
     # 请求对话输出
     chat_post_data['model'] = model
     resp = requests.post(url, data=json.dumps(chat_post_data), headers=headers, stream=True)
@@ -233,7 +233,7 @@ def thread_function_1_wenxin(resp):
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
     msgs.append(reply)
-    print("对话:",msgs)
+    print("对话:", msgs)
 
 
 def thread_function_1_local(resp):
@@ -270,7 +270,7 @@ def thread_function_1_local(resp):
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
     chat_post_data["messages"].append(reply)
-    print("对话:",chat_post_data["messages"])
+    print("对话:", chat_post_data["messages"])
 
 
 # 第二线程用于分段+生成
@@ -361,35 +361,44 @@ def thread_function_3(father_robot: ROBOT):
 # 第四线程用于动作执行
 def thread_function_4(father_robot, controller_return, emotion):
     data_dict = {}
-    pattern = r'~(.*?)(\d+)'
-    controller_return = controller_return.replace("/", "").replace("。", "").replace("度", "")
-    print("情感组:",controller_return)
-    try:
+    if father_robot.chat_offline:
+        # 使用正则表达式提取部位和角度
+        pattern = r'"([^"]+)": (\d+)'
+        matches = re.findall(pattern, controller_return)
+
+        # 创建一个字典来存储结果
+        for match in matches:
+            part, angle = match
+            data_dict[part] = int(angle)
+    else:
+        pattern = r'~(.*?)(\d+)'
+        controller_return = controller_return.replace("/", "").replace("。", "").replace("度", "")
         # 查找所有匹配项
         matches = re.findall(pattern, controller_return)
         # 提取并组织数据到字典
         data_dict = {match[0]: int(match[1]) for match in matches}
-        print(data_dict)
-        if "身体" in data_dict:
-            father_robot.set_body_rotation(data_dict["身体"])
-        if "左臂" in data_dict:
-            father_robot.set_larm_rotation(data_dict["左臂"])
-        if "右臂" in data_dict:
-            father_robot.set_rarm_rotation(180 - data_dict["右臂"])
-    finally:
-        if data_dict == {}:
-            if emotion == '开心':
-                action.happy_action(father_robot)
-            elif emotion == '害怕':
-                action.scare_action(father_robot)
-            elif emotion == '生气':
-                action.angry_action(father_robot)
-            elif emotion == '失落':
-                action.upset_action(father_robot)
-            elif emotion == '好奇':
-                action.curious_action(father_robot)
-            elif emotion == '戏谑':
-                action.laugh_action(father_robot)
+    print("运动组", data_dict)
+
+    # 动作执行
+    if "身体" in data_dict:
+        father_robot.set_body_rotation(data_dict["身体"])
+    if "左臂" in data_dict:
+        father_robot.set_larm_rotation(data_dict["左臂"])
+    if "右臂" in data_dict:
+        father_robot.set_rarm_rotation(180 - data_dict["右臂"])
+    if data_dict == {}:
+        if emotion == '开心':
+            action.happy_action(father_robot)
+        elif emotion == '害怕':
+            action.scare_action(father_robot)
+        elif emotion == '生气':
+            action.angry_action(father_robot)
+        elif emotion == '失落':
+            action.upset_action(father_robot)
+        elif emotion == '好奇':
+            action.curious_action(father_robot)
+        elif emotion == '戏谑':
+            action.laugh_action(father_robot)
 
 
 if __name__ == '__main__':

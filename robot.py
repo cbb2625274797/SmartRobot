@@ -8,6 +8,7 @@ import pypinyin
 import webUI as UI
 from audio import audio_process as AU
 from body import PWM
+import json
 
 import audio.audio_recognition as ASR
 
@@ -46,7 +47,6 @@ def contains_sublist(lst, sub_list):
 class ROBOT:
     def __init__(self,
                  model,
-                 host,
                  name: str = "小斌",
                  mode: str = "text"):
         """
@@ -54,12 +54,13 @@ class ROBOT:
         :param model:使用的模型
         :param name:机器人名称/唤醒词
         :param mode:text/sound，控制是否语音
-        :param host:主机地址
         """
         from bigmodel import large_language_model_interface as LLM_interface
         self.MQTT_instance = None
         self.LLM_interface = LLM_interface
-        self.host = host
+        # 打开并读取JSON文件
+        with open('ipconfig.json', 'r', encoding='utf-8') as file:
+            self.ipconfig = json.load(file)
         # 总体参数
         self.asr_offline = True
         self.asr_model = self.ASR_init()
@@ -249,7 +250,7 @@ class ROBOT:
         :host:主机地址
         :return:0/1
         """
-        web_site = "http://" + self.host
+        web_site = "http://" + self.ipconfig["UI_server"]
         system_name = platform.system().lower()
         if system_name == "windows":
             print("当前系统：", system_name, "，不需要开启webUI")

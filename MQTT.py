@@ -40,7 +40,7 @@ class new_class:
         self.client = mqtt.Client("local1")
         self.father_robot = None
         self.host = host
-        self.port = port
+        self.port = int(port)
 
     def run(self):
         # 绑定回调函数

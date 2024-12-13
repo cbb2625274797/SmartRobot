@@ -1,0 +1,8 @@
+{
+  "sovits_server": "http://192.168.31.3:9880",
+  "UI_server": "http://192.168.31.3:80",
+  "MQTT_server": "192.168.31.3",
+  "MQTT_port":"1883",
+  "LLM_host":"192.168.31.3",
+  "LLM_port":"11434"
+}

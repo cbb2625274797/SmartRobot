@@ -5,9 +5,11 @@ from io import BytesIO
 import requests
 from pydub import AudioSegment
 
-from main import sovits_server
 
-url = sovits_server
+# 打开并读取JSON文件
+with open('ipconfig.json', 'r', encoding='utf-8') as file:
+    ipconfig = json.load(file)
+url = ipconfig["sovits_server"]
 
 
 def post(refer_wav_path, refer_wav_text, text):
