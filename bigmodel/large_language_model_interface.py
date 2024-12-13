@@ -154,7 +154,7 @@ def get_ollama_resp(ask, model, chat_text, father_robot):
         body_controller = requests.post(url, data=json.dumps(example_motion_data), headers=headers, stream=False)
         tmp_res = json.loads(body_controller.content.decode('utf-8'))
         controller_return = tmp_res['message']['content']
-        print("contr return:", controller_return)
+        print("控制模块返回:", controller_return)
 
     # 请求对话输出
     chat_post_data['model'] = model
@@ -186,7 +186,7 @@ def get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt):
                                               "。’，除此之外不要输出其他东西，当角度超过阈值不输出任何东西"
                                        , temperature=0.4, top_p=0.4)
         controller_return = body_controller.get("result")
-        print("contr return:", controller_return)
+        print("控制模块返回:", controller_return)
 
     # 请求对话输出
     resp = chat_comp.do(model=model, messages=msgs, stream=True,
@@ -210,7 +210,7 @@ def thread_function_1_wenxin(resp):
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
     msgs.append(reply)
-    print(msgs)
+    print("对话:",msgs)
 
 
 def thread_function_1_local(resp):
@@ -247,7 +247,7 @@ def thread_function_1_local(resp):
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
     chat_post_data["messages"].append(reply)
-    print(chat_post_data["messages"])
+    print("对话:",chat_post_data["messages"])
 
 
 # 第二线程用于分段+生成
@@ -340,7 +340,7 @@ def thread_function_4(father_robot, controller_return, emotion):
     data_dict = {}
     pattern = r'~(.*?)(\d+)'
     controller_return = controller_return.replace("/", "").replace("。", "").replace("度", "")
-    print(controller_return)
+    print("情感组:",controller_return)
     try:
         # 查找所有匹配项
         matches = re.findall(pattern, controller_return)
