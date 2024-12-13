@@ -53,6 +53,9 @@ example_post_data = {
     "messages": [
     ],
     "stream": True,
+    # "options": {
+    #   "temperature": 0
+    # },
     "suffix": "    return result",
     # "format": "json",
 }
@@ -66,20 +69,40 @@ def create_motion_data(model, chat_text):
                 "role": "user",
                 "content": """
                         你的唯一作用是理解用户控制机器人的意图，机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，
-                        可以在10到170度内运动，当角度超过阈值不要输出任何东西;
-                        其他时候请你输出为格式化的文本。输出示例如下：‘~/部位/度数。’，度数用阿拉伯数字表示；
-                        当有同时输出多个意图时，输出格式如下：‘~/部位1/度数1。~/部位2/度数2。’，除此之外不要输出其他东西，
+                        可以在10到170度内运动，一般情况下你需要输出一个json，将三个部位的度数用阿拉伯数字表示；
+                        在角度小于10度或者超过170度的时候请你不要输出。
                         现在，用户说:
                         """
                            + chat_text +
                            """
-                        请你输出他的控制意图。
+                        请你使用json输出控制意图。
                         """
             },
         ],
         "stream": False,
+        # "options": {
+        #   "temperature": 0
+        # },
         "suffix": "    return result",
-        # "format": "json",
+        "format": {
+            "type": "object",
+            "properties": {
+              "身体角度": {
+                "type": "integer"
+              },
+              "左臂角度": {
+                "type": "integer"
+              },
+              "右臂角度": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "身体角度",
+              "左臂角度",
+              "右臂角度"
+            ]
+        },
     }
     return example_motion_data
 
