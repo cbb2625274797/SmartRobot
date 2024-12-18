@@ -1,15 +1,18 @@
 import json
+import os
 import time
 from io import BytesIO
 
 import requests
 from pydub import AudioSegment
 
-
-# 打开并读取JSON文件
-with open('ipconfig.json', 'r', encoding='utf-8') as file:
-    ipconfig = json.load(file)
-url = ipconfig["sovits_server"]
+# 获取当前工作目录
+current_directory = os.getcwd()
+if current_directory == "G:/project/SmartRobot":
+    # 打开并读取JSON文件
+    with open('ipconfig.json', 'r', encoding='utf-8') as file:
+        ipconfig = json.load(file)
+    url = ipconfig["sovits_server"]
 
 
 def post(refer_wav_path, refer_wav_text, text):

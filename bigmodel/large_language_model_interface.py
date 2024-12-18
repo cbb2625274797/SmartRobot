@@ -4,6 +4,8 @@ import os
 import re
 import threading
 import time
+from openai import OpenAI
+import OpenAI_api
 
 import qianfan
 import requests
@@ -12,6 +14,7 @@ import EmotionEngine.EmotionJudge as EMOTION
 from audio import audio_process as audio
 from robot import ROBOT
 import body.action as action
+import tool.camera as camera
 
 ###########################通用定义#############################
 msgs = []
@@ -22,7 +25,7 @@ reply_model = {
     "role": "assistant",
     "content": ""
 }
-ask_model = {
+normal_ask_model = {
     "role": "user",
     "content": content
 }
@@ -42,10 +45,13 @@ emotion_detect = False
 audio_generating = True
 audio_instruct = False
 ######################本地模型运行环境###########################
-# 打开并读取JSON文件
-with open('ipconfig.json', 'r', encoding='utf-8') as file:
-    ipconfig = json.load(file)
-url = 'http://' + ipconfig["LLM_host"] + ':' + ipconfig["LLM_port"] + '/api/chat'
+# 获取当前工作目录
+current_directory = os.getcwd()
+if current_directory == "G:/project/SmartRobot":
+    # 打开并读取JSON文件
+    with open('ipconfig.json', 'r', encoding='utf-8') as file:
+        ipconfig = json.load(file)
+    url = 'http://' + ipconfig["LLM_host"] + ':' + ipconfig["LLM_port"] + '/api/chat'
 
 headers = {'Content-Type': 'application/json'}
 example_post_data = {
@@ -59,6 +65,27 @@ example_post_data = {
     "suffix": "    return result",
     # "format": "json",
 }
+######################百炼图像识别############################
+bailian_client = OpenAI(
+    # 百炼API
+    api_key="sk-42164feac5b64e79a08cf24b3363b342",
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+)
+image_ask_model = {
+    "role": "user",
+    "content": [
+        {
+            "type": "image_url",
+            # "image_url": {
+            #     "url": "https://help-static-aliyun-doc.aliyuncs.com/file-manage-files/zh-CN/20241022/emyrja/dog_and_girl.jpeg"},
+            # 使用格式化字符串 (f-string) 创建一个包含 BASE64 编码图像数据的字符串。
+            "image_url": {"url": ""},
+        },
+        {
+            "type": "text", "text": "这是什么?"
+        }
+    ]
+},
 
 
 def create_motion_data(model, chat_text):
@@ -125,7 +152,7 @@ def chat(model, chat_text, father_robot: ROBOT):
     global chat_post_data
 
     # 生成通用对话语句
-    ask = copy.deepcopy(ask_model)
+    ask = copy.deepcopy(normal_ask_model)
     ask["content"] = chat_text
 
     name = father_robot.name if father_robot is not None else "默认名"
@@ -137,13 +164,14 @@ def chat(model, chat_text, father_robot: ROBOT):
     try:
         if father_robot.chat_offline:
             resp, controller_return = get_ollama_resp(ask, model, chat_text, father_robot)
+            thread_text_generate = threading.Thread(target=thread_function_1_local, args=(resp,))
         else:
             system_prompt = lines[0] + name + "，"
             for i in range(1, len(lines)):
                 system_prompt += lines[i]
             resp, controller_return = get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt)
+            thread_text_generate = threading.Thread(target=thread_function_1_wenxin, args=(resp,))
         # 创建线程对象
-        thread_text_generate = threading.Thread(target=thread_function_1_local, args=(resp,))
         thread_audio_generate = threading.Thread(target=thread_function_2, args=(father_robot,))
         thread_audio_play = threading.Thread(target=thread_function_3, args=(father_robot,))
 
@@ -189,7 +217,7 @@ def get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt):
     global msgs
     global audio_instruct
     # 生成控制提问
-    controller_ask = copy.deepcopy(ask_model)
+    controller_ask = copy.deepcopy(normal_ask_model)
     controller_ask["content"] = chat_text
     controller_msg.clear()
     controller_msg.append(controller_ask)
@@ -402,7 +430,15 @@ def thread_function_4(father_robot, controller_return, emotion):
 
 
 if __name__ == '__main__':
-    while 1:
-        question = input("请输入：\n")
-        chat("ERNIE-Bot", chat_text=question)
-        # chat("Yi-34B-Chat", chat_text=question)
+    # 生成通用对话语句
+    ask = copy.deepcopy(normal_ask_model)
+
+    ask = copy.deepcopy(image_ask_model)
+    img_path = "./picture1.jpg"
+    camera.get_image(img_path)
+    ask[0]["content"][0]["image_url"]["url"] = f"data:image/jpeg;base64,{camera.encode_image(image_path=img_path)}"
+    ask[0]["content"][1]["text"] = "请你描述一下这个画面"
+    resp = OpenAI_api.qwenvl_ol_request(bailian_client, ask)
+    print("流式输出内容为：")
+    for chunk in resp:
+        print(chunk.model_dump_json())
