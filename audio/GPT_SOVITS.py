@@ -8,7 +8,7 @@ from pydub import AudioSegment
 
 # 获取当前工作目录
 current_directory = os.getcwd()
-if current_directory == "G:/project/SmartRobot":
+if current_directory == "G:\project\SmartRobot":
     # 打开并读取JSON文件
     with open('ipconfig.json', 'r', encoding='utf-8') as file:
         ipconfig = json.load(file)
