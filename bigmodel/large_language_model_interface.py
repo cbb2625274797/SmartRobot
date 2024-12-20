@@ -70,7 +70,7 @@ bailian_client = OpenAI(
     api_key="sk-42164feac5b64e79a08cf24b3363b342",
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
 )
-image_ask_model = {
+example_image_ask = {
     "role": "user",
     "content": [
         {
@@ -139,7 +139,7 @@ def create_motion_data(model, chat_text):
     return motion_data
 
 
-chat_post_data = {}
+chat_post_data = copy.deepcopy(example_post_data)
 
 
 def chat(model, chat_text, father_robot: ROBOT):
@@ -157,6 +157,7 @@ def chat(model, chat_text, father_robot: ROBOT):
     global thread_audio_play
     global audio_instruct
     global img_cnt
+    global chat_post_data
 
     # 生成通用对话语句
     ask = copy.deepcopy(normal_ask_model)
@@ -185,14 +186,15 @@ def chat(model, chat_text, father_robot: ROBOT):
             if temp_controller_return.get("摄像头"):
                 print("识别到需要开启摄像头")
                 # 生成图像识别语句
-                ask_img = copy.deepcopy(image_ask_model)
+                ask_img = copy.deepcopy(example_image_ask)
                 ask_img["content"][1]["text"] = chat_text
                 # 获取图像
                 img_cnt += 1
                 img_path = "./picture" + str(img_cnt) + ".jpg"
                 camera.get_image(img_path)
                 # 将图像转换为BASE64编码
-                ask_img["content"][0]["image_url"]["url"] = f"data:image/jpeg;base64,{camera.encode_image(image_path=img_path)}"
+                ask_img["content"][0]["image_url"][
+                    "url"] = f"data:image/jpeg;base64,{camera.encode_image(image_path=img_path)}"
                 print(msgs_normal)
                 print(ask_img)
                 msgs_normal.append(ask_img)
@@ -240,11 +242,10 @@ def get_ollama_control_resp(model, chat_text):
 
 def get_ollama_resp(model, ask):
     global chat_post_data
-
     # 生成对话提问
-    chat_post_data = copy.deepcopy(example_post_data)
     chat_post_data['messages'].append(ask)
-
+    msgs_normal.append(ask)
+    print(chat_post_data)
     # 请求对话输出
     chat_post_data['model'] = model
     resp = requests.post(url, data=json.dumps(chat_post_data), headers=headers, stream=True)
@@ -289,11 +290,13 @@ def thread_function_1_img(resp):
     reply_text = ""
     for chunk in resp:
         result = chunk.choices[0].delta.content
-        text += result
-        reply_text += result
+        print(result)
+        text += str(result)
+        reply_text += str(result)
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
-    msgs_img.append(reply)
+    chat_post_data["messages"].append(reply)
+    msgs_normal.append(reply)
     print("对话:", msgs_img)
 
 
@@ -310,6 +313,7 @@ def thread_function_1_wenxin(resp):
 
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
+    chat_post_data["messages"].append(reply)
     msgs_normal.append(reply)
     print("对话:", msgs_normal)
 
@@ -347,6 +351,7 @@ def thread_function_1_ollama(resp):
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
     chat_post_data["messages"].append(reply)
+    msgs_normal.append(reply)
     print("对话:", chat_post_data["messages"])
 
 
@@ -478,7 +483,7 @@ def thread_function_4(father_robot, controller_return, emotion):
 
 
 if __name__ == '__main__':
-    ask_img = copy.deepcopy(image_ask_model)
+    ask_img = copy.deepcopy(example_image_ask)
     img_path = "./picture1.jpg"
     camera.get_image(img_path)
     ask_img["content"][0]["image_url"]["url"] = f"data:image/jpeg;base64,{camera.encode_image(image_path=img_path)}"
