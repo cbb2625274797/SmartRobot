@@ -190,7 +190,7 @@ def chat(model, chat_text, father_robot: ROBOT):
                 ask_img["content"][1]["text"] = chat_text
                 # 获取图像
                 img_cnt += 1
-                img_path = "./picture" + str(img_cnt) + ".jpg"
+                img_path = "./temp/picture" + str(img_cnt) + ".jpg"
                 camera.get_image(img_path)
                 # 将图像转换为BASE64编码
                 ask_img["content"][0]["image_url"][
@@ -404,7 +404,7 @@ def thread_function_2(father_robot: ROBOT):
 
                 if one_sentence != '':
                     sentences.append(one_sentence)
-                    filename = f"./audio/audio{cnt_generate}.mp3"
+                    filename = f"./temp/audio{cnt_generate}.mp3"
                     try:
                         # 生成语音
                         audio.SOVITS_TTS(father_robot.sound_character, emotion, sentences[cnt_generate - 1], filename)
@@ -427,7 +427,7 @@ def thread_function_3(father_robot: ROBOT):
         if generated_file:
             # 播放所有生成的音频文件
             filename = generated_file[0]
-            cnt_read = int(re.search(r'/audio/audio(\d+)', filename).group(1))  # 提取第几句
+            cnt_read = int(re.search(r'/temp/audio(\d+)', filename).group(1))  # 提取第几句
             # MQTT发送讲话
             try:
                 father_robot.MQTT_instance.publish(topic="cbb/TALK", message=sentences[cnt_read - 1], qos=2)

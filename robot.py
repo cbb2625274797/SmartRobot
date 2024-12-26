@@ -184,7 +184,7 @@ class ROBOT:
         进行大模型对话的操作
         :return:
         """
-        filepath = "./audio/recorded_audio.wav"
+        filepath = "./temp/recorded_audio.wav"
         sleep = True
         if self.mode == "audio":
             while True:
