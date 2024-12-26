@@ -13,7 +13,9 @@ def get_image(filepath):
             if not ret:
                 print("未能捕获图像")
                 break
-            cv2.imwrite(filepath, frame)
+
+            flipped_frame = cv2.flip(frame, 0)
+            cv2.imwrite(filepath, flipped_frame)
             print("照片已保存为", filepath)
             break
         cap.release()
