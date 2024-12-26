@@ -176,11 +176,11 @@ class PWM:
                     # self.angle_switch(j, i, i, 1)
                     time.sleep(0.1)
                     print(f"{j}通道{i}角度")
-            for j in range(3, 16, 4):
-                for i in range(180, 90):
-                    self.set_Angle(j, i)
-                    time.sleep(0.1)
-                    print(f"{j}通道{i}角度")
+            # for j in range(3, 16, 4):
+            #     for i in range(180, 90):
+            #         self.set_Angle(j, i)
+            #         time.sleep(0.1)
+            #         print(f"{j}通道{i}角度")
                 # self.set_Angle(j, 90)
 
 
