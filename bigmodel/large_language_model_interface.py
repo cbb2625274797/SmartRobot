@@ -15,6 +15,7 @@ from audio import audio_process as audio
 from robot import ROBOT
 import body.action as action
 import tool.camera as camera
+import tool.get_ipconfig as get_ipconfig
 
 ###########################通用定义#############################
 msgs_normal = []
@@ -44,13 +45,11 @@ controller_return = ""
 emotion_detect = False
 audio_instruct = False
 ######################本地模型运行环境###########################
-# 获取当前工作目录
-current_directory = os.getcwd()
-if current_directory == "G:\project\SmartRobot":
-    # 打开并读取JSON文件
-    with open('ipconfig.json', 'r', encoding='utf-8') as file:
-        ipconfig = json.load(file)
+try:
+    ipconfig = get_ipconfig.run()
     url = 'http://' + ipconfig["LLM_host"] + ':' + ipconfig["LLM_port"] + '/api/chat'
+except Exception as e:
+    print(e)
 
 headers = {'Content-Type': 'application/json'}
 example_post_data = {

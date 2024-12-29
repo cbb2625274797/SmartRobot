@@ -5,14 +5,13 @@ from io import BytesIO
 
 import requests
 from pydub import AudioSegment
+from tool import get_ipconfig
 
-# 获取当前工作目录
-current_directory = os.getcwd()
-if current_directory == "G:\project\SmartRobot":
-    # 打开并读取JSON文件
-    with open('ipconfig.json', 'r', encoding='utf-8') as file:
-        ipconfig = json.load(file)
-    url = ipconfig["sovits_server"]
+try:
+    ipconfig = get_ipconfig.run()
+    url = 'http://' + ipconfig["LLM_host"] + ':' + ipconfig["LLM_port"] + '/api/chat'
+except Exception as e:
+    print(e)
 
 
 def post(refer_wav_path, refer_wav_text, text):
