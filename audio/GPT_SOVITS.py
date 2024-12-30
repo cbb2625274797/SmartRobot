@@ -9,7 +9,6 @@ from tool import get_ipconfig
 
 try:
     ipconfig = get_ipconfig.run()
-    url = 'http://' + ipconfig["LLM_host"] + ':' + ipconfig["LLM_port"] + '/api/chat'
 except Exception as e:
     print(e)
 
@@ -31,7 +30,7 @@ def post(refer_wav_path, refer_wav_text, text):
         'Content-Type': 'application/json',
     }
     # 发送POST请求
-    response = requests.post(url, data=json_data, headers=headers, timeout=10)
+    response = requests.post(ipconfig["sovits_server"], data=json_data, headers=headers, timeout=10)
 
     # 检查响应状态码
     if response.status_code == 200:
@@ -55,7 +54,7 @@ def post_v2(
         temperature: float = 1,
         speed_factor: float = 1.0
 ):
-    url_v2_tts = url + '/tts'
+    url_v2_tts = ipconfig["sovits_server"] + '/tts'
     # 设置URL和要发送的数据
     data = {
         "text": text,  # str.(required) text to be synthesized
@@ -102,12 +101,12 @@ def post_v2(
 
 def commanmd(command: str):
     if command == "exit":
-        url_command = url + "/control?command=exit"
+        url_command = ipconfig["sovits_server"] + "/control?command=exit"
     elif command == "restart":
-        url_command = url + "/control?command=restart"
+        url_command = ipconfig["sovits_server"] + "/control?command=restart"
         print("等待重启...")
     else:
-        url_command = url + "/control?command=??"
+        url_command = ipconfig["sovits_server"] + "/control?command=??"
         print("未知命令")
     try:
         # 发送GET请求
@@ -136,7 +135,7 @@ def set_gpt_weights(character: int):
         print("未知角色！")
         return 0
 
-    url_set = url + "/set_gpt_weights?weights_path=" + weights_path
+    url_set = ipconfig["sovits_server"] + "/set_gpt_weights?weights_path=" + weights_path
     try:
         # 发送GET请求
         response = requests.get(url_set)
@@ -163,7 +162,7 @@ def set_sovits_weights(character: int):
     else:
         print("未知角色！")
         return 0
-    url_set = url + "/set_sovits_weights?weights_path=" + weights_path
+    url_set = ipconfig["sovits_server"] + "/set_sovits_weights?weights_path=" + weights_path
     try:
         # 发送GET请求
         response = requests.get(url_set)
