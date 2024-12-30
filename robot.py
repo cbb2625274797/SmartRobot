@@ -219,6 +219,7 @@ class ROBOT:
                             question = AU.STT(filepath)[0]
                         else:
                             question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
+                        print("识别到语音：", question)
                         if question == "":
                             print("音频为空")
                             pass

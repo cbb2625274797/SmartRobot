@@ -55,6 +55,10 @@ headers = {'Content-Type': 'application/json'}
 example_post_data = {
     "model": "",
     "messages": [
+        {
+            "role": "system",
+            "content": ""
+        }
     ],
     "stream": True,
     # "options": {
@@ -162,13 +166,16 @@ def chat(model, chat_text, father_robot: ROBOT):
     ask = copy.deepcopy(normal_ask_model)
     ask["content"] = chat_text
 
-    name = father_robot.name if father_robot is not None else "默认名"
+    name = father_robot.name if father_robot is not None else "小斌"
     lines = []
     # 提取system prompt
     with open('./bigmodel/system prompt', 'r', encoding='utf-8') as file:
         for line in file:
             lines.append(line.strip())
-
+    system_prompt = lines[0] + name + "，"
+    for i in range(1, len(lines)):
+        system_prompt += lines[i]
+    example_post_data["messages"][0]["content"] = system_prompt
     try:
         if father_robot.chat_offline:
             # 请求控制输出
@@ -202,12 +209,9 @@ def chat(model, chat_text, father_robot: ROBOT):
                 resp = OpenAI_api.qwenvl_ol_request(bailian_client, msgs_img)
                 thread_text_generate = threading.Thread(target=thread_function_1_img, args=(resp,))
             else:
-                resp = get_ollama_resp(model, ask)
+                resp = get_ollama_resp(model, ask, system_prompt)
                 thread_text_generate = threading.Thread(target=thread_function_1_ollama, args=(resp,))
         else:
-            system_prompt = lines[0] + name + "，"
-            for i in range(1, len(lines)):
-                system_prompt += lines[i]
             resp, controller_return = get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt)
             thread_text_generate = threading.Thread(target=thread_function_1_wenxin, args=(resp,))
         # 创建线程对象
@@ -239,14 +243,15 @@ def get_ollama_control_resp(model, chat_text):
     return controller_return
 
 
-def get_ollama_resp(model, ask):
+def get_ollama_resp(model, ask, system_prompt):
     global chat_post_data
+    # 请求对话输出
+    chat_post_data['model'] = model
     # 生成对话提问
+    chat_post_data["messages"][0]["content"] = system_prompt
     chat_post_data['messages'].append(ask)
     msgs_normal.append(ask)
     print(chat_post_data)
-    # 请求对话输出
-    chat_post_data['model'] = model
     resp = requests.post(url, data=json.dumps(chat_post_data), headers=headers, stream=True)
     return resp
 
@@ -296,7 +301,7 @@ def thread_function_1_img(resp):
     reply["content"] = reply_text
     chat_post_data["messages"].append(reply)
     msgs_normal.append(reply)
-    print("对话:", msgs_img)
+    # print("对话:", msgs_img)
 
 
 # 定义第一个线程是提取输出结果
@@ -351,7 +356,7 @@ def thread_function_1_ollama(resp):
     reply["content"] = reply_text
     chat_post_data["messages"].append(reply)
     msgs_normal.append(reply)
-    print("对话:", chat_post_data["messages"])
+    print("对话:", chat_post_data["messages"][1:])
 
 
 # 第二线程用于分段+生成

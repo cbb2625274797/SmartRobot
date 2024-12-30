@@ -56,8 +56,11 @@ def happy_action(father_robot: robot.ROBOT):
     thread4 = threading.Thread(target=thread_function_4, args=())
 
     thread1.start()
+    time.sleep(0.1)
     thread2.start()
+    time.sleep(0.1)
     thread3.start()
+    time.sleep(0.1)
     thread4.start()
 
     thread1.join()
@@ -101,9 +104,13 @@ def scare_action(father_robot: robot.ROBOT):
     thread4 = threading.Thread(target=thread_function_4, args=())
 
     thread1.start()
+    time.sleep(0.1)
     thread2.start()
+    time.sleep(0.1)
     thread3.start()
+    time.sleep(0.1)
     thread4.start()
+
 
     thread1.join()
     thread2.join()
@@ -140,9 +147,13 @@ def angry_action(father_robot: robot.ROBOT):
     thread4 = threading.Thread(target=thread_function_4, args=())
 
     thread1.start()
+    time.sleep(0.1)
     thread2.start()
+    time.sleep(0.1)
     thread3.start()
+    time.sleep(0.1)
     thread4.start()
+
 
     thread1.join()
     thread2.join()
@@ -184,9 +195,13 @@ def upset_action(father_robot: robot.ROBOT):
     thread4 = threading.Thread(target=thread_function_4, args=())
 
     thread1.start()
+    time.sleep(0.1)
     thread2.start()
+    time.sleep(0.1)
     thread3.start()
+    time.sleep(0.1)
     thread4.start()
+
 
     thread1.join()
     thread2.join()
@@ -226,9 +241,13 @@ def laugh_action(father_robot: robot.ROBOT):
     thread4 = threading.Thread(target=thread_function_4, args=())
 
     thread1.start()
+    time.sleep(0.1)
     thread2.start()
+    time.sleep(0.1)
     thread3.start()
+    time.sleep(0.1)
     thread4.start()
+
 
     thread1.join()
     thread2.join()
@@ -268,9 +287,13 @@ def curious_action(father_robot: robot.ROBOT):
     thread4 = threading.Thread(target=thread_function_4, args=())
 
     thread1.start()
+    time.sleep(0.1)
     thread2.start()
+    time.sleep(0.1)
     thread3.start()
+    time.sleep(0.1)
     thread4.start()
+
 
     thread1.join()
     thread2.join()
