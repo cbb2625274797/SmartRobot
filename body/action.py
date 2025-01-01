@@ -111,7 +111,6 @@ def scare_action(father_robot: robot.ROBOT):
     time.sleep(0.2)
     thread4.start()
 
-
     thread1.join()
     thread2.join()
     thread3.join()
@@ -153,7 +152,6 @@ def angry_action(father_robot: robot.ROBOT):
     thread3.start()
     time.sleep(0.2)
     thread4.start()
-
 
     thread1.join()
     thread2.join()
@@ -202,7 +200,6 @@ def upset_action(father_robot: robot.ROBOT):
     time.sleep(0.2)
     thread4.start()
 
-
     thread1.join()
     thread2.join()
     thread3.join()
@@ -248,7 +245,6 @@ def laugh_action(father_robot: robot.ROBOT):
     time.sleep(0.2)
     thread4.start()
 
-
     thread1.join()
     thread2.join()
     thread3.join()
@@ -262,23 +258,23 @@ def curious_action(father_robot: robot.ROBOT):
 
     def thread_function_2():
         father_robot.set_foot_rotation(90)
-        father_robot.set_foot_rotation(85,3)
+        father_robot.set_foot_rotation(85, 3)
         time.sleep(2)
-        father_robot.set_foot_rotation(95,3)
+        father_robot.set_foot_rotation(95, 3)
         father_robot.set_foot_rotation(90)
 
     def thread_function_3():
         father_robot.set_larm_rotation(90)
-        father_robot.set_larm_rotation(120,3)
+        father_robot.set_larm_rotation(120, 3)
         time.sleep(1.4)
-        father_robot.set_larm_rotation(60,3)
+        father_robot.set_larm_rotation(60, 3)
         father_robot.set_larm_rotation(90)
 
     def thread_function_4():
         father_robot.set_rarm_rotation(90)
-        father_robot.set_rarm_rotation(60,3)
+        father_robot.set_rarm_rotation(60, 3)
         time.sleep(1.6)
-        father_robot.set_rarm_rotation(120,3)
+        father_robot.set_rarm_rotation(120, 3)
         father_robot.set_rarm_rotation(90)
 
     thread1 = threading.Thread(target=thread_function_1, args=())
@@ -293,7 +289,6 @@ def curious_action(father_robot: robot.ROBOT):
     thread3.start()
     time.sleep(0.2)
     thread4.start()
-
 
     thread1.join()
     thread2.join()
