@@ -267,7 +267,6 @@ def get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt):
 
     # 生成对话提问
     msgs_normal.append(ask)
-
     controller_return = ""
     if "转" in chat_text and father_robot.action_enable:
         audio_instruct = True
@@ -282,6 +281,7 @@ def get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt):
         controller_return = body_controller.get("result")
         print("控制模块返回:", controller_return)
 
+    print("文心请求消息：", msgs_normal)
     # 请求对话输出
     resp = chat_comp.do(model=model, messages=msgs_normal, stream=True,
                         system=system_prompt
@@ -313,7 +313,7 @@ def thread_function_1_wenxin(resp):
         result = r.get("result")
         text += result
         reply_text += result
-        time.sleep(2)  # 等待文字生成
+        time.sleep(1)  # 等待文字生成
 
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text

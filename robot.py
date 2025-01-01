@@ -80,7 +80,7 @@ class ROBOT:
         self.sound_temperature = 1
         self.sound_top_k = 0.9
         # 姿态参数
-        self.action_enable = False
+        self.action_enable = True
         self.larm = 90
         self.rarm = 90
         self.body = 90
@@ -227,10 +227,7 @@ class ROBOT:
                             self.MQTT_instance.publish("other/status", "休眠")
                             sleep = True
                         else:
-                            if not self.chat_offline:
-                                self.LLM_interface.chat(self.model, question, self)
-                            else:
-                                self.LLM_interface.chat(self.model, question, self)
+                            self.LLM_interface.chat(self.model, question, self)
                             if not self.continue_talk:  # 如果不是连续对话，睡眠
                                 sleep = True
                                 self.MQTT_instance.publish("other/status", "休眠")
