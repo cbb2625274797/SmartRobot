@@ -253,15 +253,15 @@ def laugh_action(father_robot: robot.ROBOT):
 
 def curious_action(father_robot: robot.ROBOT):
     def thread_function_1():
-        father_robot.set_body_rotation(90)
-        father_robot.set_body_rotation(90)
+        father_robot.set_body_rotation(89)
+        father_robot.set_body_rotation(91)
 
     def thread_function_2():
-        father_robot.set_foot_rotation(90)
+        father_robot.set_body_rotation(89)
         father_robot.set_foot_rotation(85, 3)
         time.sleep(2)
         father_robot.set_foot_rotation(95, 3)
-        father_robot.set_foot_rotation(90)
+        father_robot.set_body_rotation(91)
 
     def thread_function_3():
         father_robot.set_larm_rotation(90)
