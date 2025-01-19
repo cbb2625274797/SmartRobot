@@ -223,9 +223,10 @@ class ROBOT:
                         if question == "":
                             print("音频为空")
                             pass
-                        elif "请你退下" in question:
+                        elif "请你退下" or "退一下" in question:
                             self.MQTT_instance.publish("other/status", "休眠")
                             sleep = True
+
                         else:
                             self.LLM_interface.chat(self.model, question, self)
                             if not self.continue_talk:  # 如果不是连续对话，睡眠

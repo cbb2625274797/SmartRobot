@@ -17,7 +17,7 @@ import body.action as action
 import tool.camera as camera
 import tool.get_ipconfig as get_ipconfig
 
-###########################通用定义#############################
+# ##########################通用定义#############################
 msgs_normal = []
 msgs_img = []
 msg_control = []
@@ -31,7 +31,7 @@ normal_ask_model = {
     "role": "user",
     "content": content
 }
-######################百度文心运行环境###########################
+# #####################百度文心运行环境###########################
 # 使用安全认证AK/SK鉴权，通过环境变量方式初始化;
 os.environ["QIANFAN_ACCESS_KEY"] = "3d9df86f23d64f0f8a072eb391ec1dad"
 os.environ["QIANFAN_SECRET_KEY"] = "465151a1ed0f426a9e9662d6f3cdd7a9"
@@ -44,7 +44,7 @@ generated_file = []
 controller_return = ""
 emotion_detect = False
 audio_instruct = False
-######################本地模型运行环境###########################
+# #####################本地模型运行环境###########################
 try:
     ipconfig = get_ipconfig.run()
     url = 'http://' + ipconfig["LLM_host"] + ':' + ipconfig["LLM_port"] + '/api/chat'
@@ -67,7 +67,7 @@ example_post_data = {
     "suffix": "    return result",
     # "format": "json",
 }
-######################百炼图像识别############################
+# #####################百炼图像识别############################
 bailian_client = OpenAI(
     # 百炼API
     api_key="sk-42164feac5b64e79a08cf24b3363b342",
@@ -88,6 +88,8 @@ example_image_ask = {
         }
     ]
 }
+# #####################deepseek############################
+deep_seek_client = OpenAI(api_key="sk-a12af00efc1b4b4b9878448a26117872", base_url="https://api.deepseek.com")
 
 
 def create_motion_data(model, chat_text):
@@ -101,7 +103,7 @@ def create_motion_data(model, chat_text):
                         机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，默认都是90度，
                         可以在10到170度内运动，一般情况下你需要输出一个json，将三个部位的度数用阿拉伯数字表示；
                         在角度小于10度或者超过170度的时候请你不要输出。
-                        然后你可以控制你的摄像头，当你认为用户需要你去看某个东西时，请输出摄像头为True
+                        然后你可以控制你的摄像头，当你认为用户需要你去看某个东西时，请输出摄像头为True，在控制智能家具的时候不要开启摄像头
                         现在，用户说:
                         """
                            + chat_text +
@@ -294,9 +296,10 @@ def thread_function_1_img(resp):
     reply_text = ""
     for chunk in resp:
         result = chunk.choices[0].delta.content
-        print(result)
-        text += str(result)
-        reply_text += str(result)
+        if result is not None:
+            print("delta content:", result)
+            text += str(result)
+            reply_text += str(result)
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
     chat_post_data["messages"].append(reply)

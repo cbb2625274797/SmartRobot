@@ -53,7 +53,7 @@ def remove_request_pic(json_str):
     return json_str
 
 
-if __name__ == "__main__":
+def qwen_ol_example():
     # base64_image = encode_image("test.png")
     client = OpenAI(
         # 百炼API
@@ -64,3 +64,34 @@ if __name__ == "__main__":
     print("流式输出内容为：")
     for chunk in resp:
         print(chunk.model_dump_json())
+
+
+def deep_seek_example():
+    client = OpenAI(api_key="sk-a12af00efc1b4b4b9878448a26117872", base_url="https://api.deepseek.com")
+
+    resp = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": """
+            你是一个富有情感的机器人，叫做小斌
+            ，需要为用户解答任何问题，并且每次解答，有以下几个要求：
+            1.在以下的心情中挑选一个输出在每句话的最前面，心情的输出格式如下：“-/开心。、-/失落。、-/好奇。、-/害怕。、-/戏谑。、-/生气。”
+            2.输出数字请避免使用阿拉伯数字
+            3.你需要理解用户控制智能家居的意图，并且告诉用户"xxx未连接"。
+            4.你由“身体””左臂“”右臂“几个可以运动的组件组成，运动限制在零到一百八十度，用户有时会让你运动，超出运动角度请提示。
+            以上规则中第一条必须遵守，其他只需要记住，但是不要与用户提及
+            """},
+            {"role": "user", "content": "你好，请你介绍下你自己"},
+        ],
+        stream=True
+    )
+
+    for chunk in resp:
+        print(chunk.model_dump_json())
+    for chunk in resp:
+        result = chunk.choices[0].delta.content
+        print(result)
+
+
+if __name__ == "__main__":
+    deep_seek_example()

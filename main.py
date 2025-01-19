@@ -46,8 +46,9 @@ class orangepi_client:
         :return:
         """
         # self.ROBOT_instance = robot.ROBOT("ERNIE-3.5-8K", host=MQTT_server, mode="text")
-        self.ROBOT_instance = robot.ROBOT("Qwen2.5_32b_q2", mode="audio")
-        # self.ROBOT_instance = robot.ROBOT("ERNIE-4.0-8K", mode="audio")
+        self.ROBOT_instance = robot.ROBOT("Qwen2.5_32b_cus_q2", mode="audio")
+        # self.ROBOT_instance = robot.RO
+        # BOT("ERNIE-4.0-8K", mode="audio")
         self.robot_init_ok = True
         while not self.client_init_ok:
             time.sleep(0.1)
