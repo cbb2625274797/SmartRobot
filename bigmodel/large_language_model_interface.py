@@ -4,6 +4,8 @@ import os
 import re
 import threading
 import time
+from openai import OpenAI
+from bigmodel import OpenAI_api
 
 import qianfan
 import requests
@@ -12,45 +14,51 @@ import EmotionEngine.EmotionJudge as EMOTION
 from audio import audio_process as audio
 from robot import ROBOT
 import body.action as action
+import tool.camera as camera
+import tool.get_ipconfig as get_ipconfig
 
-###########################通用定义#############################
-msgs = []
-controller_msg = []
+# ##########################通用定义#############################
+msgs_normal = []
+msgs_img = []
+msg_control = []
 text = ""
 content = "你好，请你生成1000字的文章，关于人工智能"
 reply_model = {
     "role": "assistant",
     "content": ""
 }
-ask_model = {
+normal_ask_model = {
     "role": "user",
     "content": content
 }
-######################百度文心运行环境###########################
+# #####################百度文心运行环境###########################
 # 使用安全认证AK/SK鉴权，通过环境变量方式初始化;
 os.environ["QIANFAN_ACCESS_KEY"] = "3d9df86f23d64f0f8a072eb391ec1dad"
 os.environ["QIANFAN_SECRET_KEY"] = "465151a1ed0f426a9e9662d6f3cdd7a9"
 
 chat_comp = qianfan.ChatCompletion()
 
-need_read = 0
-synth_sentence = 0
+img_cnt = 0
 sentences = []
 generated_file = []
 controller_return = ""
 emotion_detect = False
-audio_generating = True
 audio_instruct = False
-######################本地模型运行环境###########################
-# 打开并读取JSON文件
-with open('ipconfig.json', 'r', encoding='utf-8') as file:
-    ipconfig = json.load(file)
-url = 'http://' + ipconfig["LLM_host"] + ':' + ipconfig["LLM_port"] + '/api/chat'
+# #####################本地模型运行环境###########################
+try:
+    ipconfig = get_ipconfig.run()
+    url = 'http://' + ipconfig["LLM_host"] + ':' + ipconfig["LLM_port"] + '/api/chat'
+except Exception as e:
+    print(e)
 
 headers = {'Content-Type': 'application/json'}
 example_post_data = {
     "model": "",
     "messages": [
+        {
+            "role": "system",
+            "content": ""
+        }
     ],
     "stream": True,
     # "options": {
@@ -59,12 +67,35 @@ example_post_data = {
     "suffix": "    return result",
     # "format": "json",
 }
+# #####################百炼图像识别############################
+bailian_client = OpenAI(
+    # 百炼API
+    api_key="sk-42164feac5b64e79a08cf24b3363b342",
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+)
+example_image_ask = {
+    "role": "user",
+    "content": [
+        {
+            "type": "image_url",
+            # "image_url": {
+            #     "url": "https://help-static-aliyun-doc.aliyuncs.com/file-manage-files/zh-CN/20241022/emyrja/dog_and_girl.jpeg"},
+            # 使用格式化字符串 (f-string) 创建一个包含 BASE64 编码图像数据的字符串。
+            "image_url": {"url": ""},
+        },
+        {
+            "type": "text", "text": "这是什么?"
+        }
+    ]
+}
+# #####################deepseek############################
+deep_seek_client = OpenAI(api_key="sk-a12af00efc1b4b4b9878448a26117872", base_url="https://api.deepseek.com")
 
 
 def create_motion_data(model, chat_text):
-    example_motion_data = {
+    motion_data = {
         "model": model,
-        "system": "你是一个机器人的运动核心，你唯一的作用是理解用户的意图，不要输出其他东西",
+        "system": "你是一个机器人的大脑，你唯一的作用是理解用户的意图，不要输出其他东西",
         "messages": [
             {
                 "role": "user",
@@ -72,11 +103,12 @@ def create_motion_data(model, chat_text):
                         机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，默认都是90度，
                         可以在10到170度内运动，一般情况下你需要输出一个json，将三个部位的度数用阿拉伯数字表示；
                         在角度小于10度或者超过170度的时候请你不要输出。
+                        然后你可以控制你的摄像头，当你认为用户需要你去看某个东西时，请输出摄像头为True，在控制智能家具的时候不要开启摄像头
                         现在，用户说:
                         """
                            + chat_text +
                            """
-                        请你使用json输出控制意图。
+                        请你使用json输出意图。
                         """
             },
         ],
@@ -96,19 +128,23 @@ def create_motion_data(model, chat_text):
                 },
                 "右臂": {
                     "type": "integer"
+                },
+                "摄像头": {
+                    "type": "boolean"
                 }
             },
             "required": [
                 "身体",
                 "左臂",
-                "右臂"
+                "右臂",
+                "摄像头"
             ]
         },
     }
-    return example_motion_data
+    return motion_data
 
 
-chat_post_data = {}
+chat_post_data = copy.deepcopy(example_post_data)
 
 
 def chat(model, chat_text, father_robot: ROBOT):
@@ -119,31 +155,68 @@ def chat(model, chat_text, father_robot: ROBOT):
     :return: 无返回
     """
     global controller_return
+    global msgs_normal
+    global msgs_img
     global thread_text_generate
     global thread_audio_generate
     global thread_audio_play
+    global audio_instruct
+    global img_cnt
     global chat_post_data
 
     # 生成通用对话语句
-    ask = copy.deepcopy(ask_model)
+    ask = copy.deepcopy(normal_ask_model)
     ask["content"] = chat_text
 
-    name = father_robot.name if father_robot is not None else "默认名"
+    name = father_robot.name if father_robot is not None else "小斌"
     lines = []
     # 提取system prompt
     with open('./bigmodel/system prompt', 'r', encoding='utf-8') as file:
         for line in file:
             lines.append(line.strip())
+    system_prompt = lines[0] + name + "，"
+    for i in range(1, len(lines)):
+        system_prompt += lines[i]
+    example_post_data["messages"][0]["content"] = system_prompt
     try:
         if father_robot.chat_offline:
-            resp, controller_return = get_ollama_resp(ask, model, chat_text, father_robot)
+            # 请求控制输出
+            controller_return = get_ollama_control_resp(model, chat_text)
+            temp_controller_return = json.loads(controller_return)
+            if temp_controller_return["身体"] == 90 and temp_controller_return["左臂"] == 90 and temp_controller_return[
+                "右臂"] == 90:
+                print("没有运动指令")
+            else:
+                print("有运动指令")
+                if father_robot.action_enable:
+                    audio_instruct = True
+            # 判断需要开启的模块
+            if temp_controller_return.get("摄像头"):
+                print("识别到需要开启摄像头")
+                # 生成图像识别语句
+                ask_img = copy.deepcopy(example_image_ask)
+                ask_img["content"][1]["text"] = chat_text
+                # 获取图像
+                img_cnt += 1
+                img_path = "./temp/picture" + str(img_cnt) + ".jpg"
+                camera.get_image(img_path)
+                # 将图像转换为BASE64编码
+                ask_img["content"][0]["image_url"][
+                    "url"] = f"data:image/jpeg;base64,{camera.encode_image(image_path=img_path)}"
+                print(msgs_normal)
+                print(ask_img)
+                msgs_normal.append(ask_img)
+                msgs_img = msgs_normal
+                print(msgs_img)
+                resp = OpenAI_api.qwenvl_ol_request(bailian_client, msgs_img)
+                thread_text_generate = threading.Thread(target=thread_function_1_img, args=(resp,))
+            else:
+                resp = get_ollama_resp(model, ask, system_prompt)
+                thread_text_generate = threading.Thread(target=thread_function_1_ollama, args=(resp,))
         else:
-            system_prompt = lines[0] + name + "，"
-            for i in range(1, len(lines)):
-                system_prompt += lines[i]
             resp, controller_return = get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt)
+            thread_text_generate = threading.Thread(target=thread_function_1_wenxin, args=(resp,))
         # 创建线程对象
-        thread_text_generate = threading.Thread(target=thread_function_1_local, args=(resp,))
         thread_audio_generate = threading.Thread(target=thread_function_2, args=(father_robot,))
         thread_audio_play = threading.Thread(target=thread_function_3, args=(father_robot,))
 
@@ -161,47 +234,46 @@ def chat(model, chat_text, father_robot: ROBOT):
         print(e)
 
 
-def get_ollama_resp(ask, model, chat_text, father_robot):
-    global chat_post_data
-    global audio_instruct
+def get_ollama_control_resp(model, chat_text):
     # 生成控制提问
     example_motion_data = create_motion_data(model, chat_text)
+    # 请求运动控制输出
+    body_controller = requests.post(url, data=json.dumps(example_motion_data), headers=headers, stream=False)
+    tmp_res = json.loads(body_controller.content.decode('utf-8'))
+    controller_return = tmp_res['message']['content']
+    print("控制模块返回:", controller_return)
+    return controller_return
 
-    # 生成对话提问
-    chat_post_data = copy.deepcopy(example_post_data)
-    chat_post_data['messages'].append(ask)
 
-    controller_return = ""
-    if "转" in chat_text and father_robot.action_enable:
-        audio_instruct = True
-        # 请求运动控制输出
-        body_controller = requests.post(url, data=json.dumps(example_motion_data), headers=headers, stream=False)
-        tmp_res = json.loads(body_controller.content.decode('utf-8'))
-        controller_return = tmp_res['message']['content']
-        print("控制模块返回:", controller_return)
+def get_ollama_resp(model, ask, system_prompt):
+    global chat_post_data
     # 请求对话输出
     chat_post_data['model'] = model
+    # 生成对话提问
+    chat_post_data["messages"][0]["content"] = system_prompt
+    chat_post_data['messages'].append(ask)
+    msgs_normal.append(ask)
+    print(chat_post_data)
     resp = requests.post(url, data=json.dumps(chat_post_data), headers=headers, stream=True)
-    return resp, controller_return
+    return resp
 
 
 def get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt):
-    global msgs
+    global msgs_normal
     global audio_instruct
     # 生成控制提问
-    controller_ask = copy.deepcopy(ask_model)
+    controller_ask = copy.deepcopy(normal_ask_model)
     controller_ask["content"] = chat_text
-    controller_msg.clear()
-    controller_msg.append(controller_ask)
+    msg_control.clear()
+    msg_control.append(controller_ask)
 
     # 生成对话提问
-    msgs.append(ask)
-
+    msgs_normal.append(ask)
     controller_return = ""
     if "转" in chat_text and father_robot.action_enable:
         audio_instruct = True
         # 请求运动控制输出
-        body_controller = chat_comp.do(model="ERNIE-3.5-4K-0205", messages=controller_msg, stream=False,
+        body_controller = chat_comp.do(model="ERNIE-3.5-4K-0205", messages=msg_control, stream=False,
                                        system="你是一个不会解答问题的核心，你唯一的作用是理解用户控制机器人的意图，输出在25字符以内"
                                               "机器人有3个可以运动的部分，分别为“身体”、“左臂”、“右臂”，阈值为0到180度，"
                                               "你唯一的作用是理解用户控制机器人的意图，输出为格式化的文本。输出示例如下：‘~/部位/度数。’；"
@@ -211,16 +283,32 @@ def get_wenxin_resp(ask, model, chat_text, father_robot, system_prompt):
         controller_return = body_controller.get("result")
         print("控制模块返回:", controller_return)
 
+    print("文心请求消息：", msgs_normal)
     # 请求对话输出
-    resp = chat_comp.do(model=model, messages=msgs, stream=True,
+    resp = chat_comp.do(model=model, messages=msgs_normal, stream=True,
                         system=system_prompt
                         , temperature=father_robot.chat_temperature, top_p=father_robot.chat_top_p)
     return resp, controller_return
 
 
+def thread_function_1_img(resp):
+    global text
+    reply_text = ""
+    for chunk in resp:
+        result = chunk.choices[0].delta.content
+        if result is not None:
+            print("delta content:", result)
+            text += str(result)
+            reply_text += str(result)
+    reply = copy.deepcopy(reply_model)
+    reply["content"] = reply_text
+    chat_post_data["messages"].append(reply)
+    msgs_normal.append(reply)
+    # print("对话:", msgs_img)
+
+
 # 定义第一个线程是提取输出结果
 def thread_function_1_wenxin(resp):
-    global need_read
     global text
 
     reply_text = ""
@@ -228,21 +316,21 @@ def thread_function_1_wenxin(resp):
         result = r.get("result")
         text += result
         reply_text += result
-        time.sleep(2)  # 等待文字生成
+        time.sleep(1)  # 等待文字生成
 
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
-    msgs.append(reply)
-    print("对话:", msgs)
+    chat_post_data["messages"].append(reply)
+    msgs_normal.append(reply)
+    print("对话:", msgs_normal)
 
 
-def thread_function_1_local(resp):
+def thread_function_1_ollama(resp):
     """
     定义第一个线程是提取输出结果
     :param resp:输出的response
     :return:
     """
-    global need_read
     global text
     global chat_post_data
 
@@ -270,7 +358,8 @@ def thread_function_1_local(resp):
     reply = copy.deepcopy(reply_model)
     reply["content"] = reply_text
     chat_post_data["messages"].append(reply)
-    print("对话:", chat_post_data["messages"])
+    msgs_normal.append(reply)
+    print("对话:", chat_post_data["messages"][1:])
 
 
 # 第二线程用于分段+生成
@@ -322,7 +411,7 @@ def thread_function_2(father_robot: ROBOT):
 
                 if one_sentence != '':
                     sentences.append(one_sentence)
-                    filename = f"./audio/audio{cnt_generate}.mp3"
+                    filename = f"./temp/audio{cnt_generate}.mp3"
                     try:
                         # 生成语音
                         audio.SOVITS_TTS(father_robot.sound_character, emotion, sentences[cnt_generate - 1], filename)
@@ -337,7 +426,6 @@ def thread_function_2(father_robot: ROBOT):
 
 # 定义第三个线程播放音频
 def thread_function_3(father_robot: ROBOT):
-    global need_read
     global generated_file
     global sentences
     global emotion_detect
@@ -346,7 +434,7 @@ def thread_function_3(father_robot: ROBOT):
         if generated_file:
             # 播放所有生成的音频文件
             filename = generated_file[0]
-            cnt_read = int(re.search(r'/audio/audio(\d+)', filename).group(1))  # 提取第几句
+            cnt_read = int(re.search(r'/temp/audio(\d+)', filename).group(1))  # 提取第几句
             # MQTT发送讲话
             try:
                 father_robot.MQTT_instance.publish(topic="cbb/TALK", message=sentences[cnt_read - 1], qos=2)
@@ -386,7 +474,7 @@ def thread_function_4(father_robot, controller_return, emotion):
         father_robot.set_larm_rotation(data_dict["左臂"])
     if "右臂" in data_dict:
         father_robot.set_rarm_rotation(180 - data_dict["右臂"])
-    if data_dict == {}:
+    if not audio_instruct:
         if emotion == '开心':
             action.happy_action(father_robot)
         elif emotion == '害怕':
@@ -402,7 +490,15 @@ def thread_function_4(father_robot, controller_return, emotion):
 
 
 if __name__ == '__main__':
-    while 1:
-        question = input("请输入：\n")
-        chat("ERNIE-Bot", chat_text=question)
-        # chat("Yi-34B-Chat", chat_text=question)
+    ask_img = copy.deepcopy(example_image_ask)
+    img_path = "./picture1.jpg"
+    camera.get_image(img_path)
+    ask_img["content"][0]["image_url"]["url"] = f"data:image/jpeg;base64,{camera.encode_image(image_path=img_path)}"
+    ask_img["content"][1]["text"] = "请你描述一下这个画面"
+    msgs_img.append(ask_img)
+    # print(msgs_img)
+    resp = OpenAI_api.qwenvl_ol_request(bailian_client, msgs_img)
+    print("流式输出内容为：")
+    for chunk in resp:
+        print(chunk.model_dump_json())
+        print(chunk.choices[0].delta.content)

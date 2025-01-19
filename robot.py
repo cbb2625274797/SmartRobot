@@ -184,7 +184,7 @@ class ROBOT:
         进行大模型对话的操作
         :return:
         """
-        filepath = "./audio/recorded_audio.wav"
+        filepath = "./temp/recorded_audio.wav"
         sleep = True
         if self.mode == "audio":
             while True:
@@ -219,17 +219,16 @@ class ROBOT:
                             question = AU.STT(filepath)[0]
                         else:
                             question = ASR.inference(filepath, self.asr_model)[0]['preds'][0]
+                        print("识别到语音：", question)
                         if question == "":
                             print("音频为空")
                             pass
-                        elif "请你退下" in question:
+                        elif "请你退下" or "退一下" in question:
                             self.MQTT_instance.publish("other/status", "休眠")
                             sleep = True
+
                         else:
-                            if not self.chat_offline:
-                                self.LLM_interface.chat(self.model, question, self)
-                            else:
-                                self.LLM_interface.chat(self.model, question, self)
+                            self.LLM_interface.chat(self.model, question, self)
                             if not self.continue_talk:  # 如果不是连续对话，睡眠
                                 sleep = True
                                 self.MQTT_instance.publish("other/status", "休眠")

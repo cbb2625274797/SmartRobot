@@ -115,10 +115,10 @@ class SERVER:
 if __name__ == '__main__':
     project_path = "G:/project/"
 
-    MQTT_server_path = project_path + "SMART_ROBOT/emqx4/bin/emqx.cmd"
-    pixel_bat_path = project_path + "SMART_ROBOT/PixelStreamingInfrastructure-UE5.3/SignallingWebServer/runAWS_WithTURN.bat"
-    sovits_bat_path = project_path + "GPT-SoVITS-beta0306/开启v2接口服务.bat"
-    game_exe_path = project_path + "SMART_ROBOT/Windows/SMART_ROBOT.exe"
+    MQTT_server_path = project_path + "emqx4/bin/emqx.cmd"
+    pixel_bat_path = project_path + "SMART_ROBOT_UE5.5\PixelStreamingInfrastructure\SignallingWebServer\platform_scripts\cmd\start_turn.bat"
+    sovits_bat_path = project_path + "GPT-SoVITS2-241224/开启v2接口服务.bat"
+    game_exe_path = project_path + "SMART_ROBOT_UE5.5\Windows\SMART_ROBOT.exe"
 
     # 开启
     server_ins = SERVER(MQTT_server_path, pixel_bat_path, sovits_bat_path, game_exe_path)

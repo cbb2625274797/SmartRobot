@@ -188,6 +188,7 @@ class PWM:
             for i in float_array:
                 self.Mqtt_ins.father_robot.rarm = i
                 self.set_Angle(num, i)
+        time.sleep(speed * 0.4)
 
 
 if __name__ == '__main__':

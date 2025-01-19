@@ -1,4 +1,5 @@
 import json
+import os
 import time
 import wave
 
@@ -31,6 +32,11 @@ def record(duration, samplerate, filepath):
     if myrecording.dtype != wav_dtype:
         recording = (myrecording * (2 ** 15 - 1)).astype(wav_dtype)
         # 保存为WAV文件
+    # 检查文件是否存在，如果不存在则创建文件
+    if not os.path.exists(filepath):
+        open(filepath, 'wb').close()
+
+    # 保存为WAV文件
     write(filepath, wav_fs, recording)
     # print("录音已保存为 'recorded_audio.wav'")
 
