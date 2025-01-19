@@ -113,13 +113,24 @@ class SERVER:
 
 
 if __name__ == '__main__':
-    project_path = "G:/project/"
+    import os
+    project_path = ""
+    # 获取根目录
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    while not os.path.exists(os.path.join(root_dir, 'ipconfig.json')):
+        project_path = os.path.dirname(root_dir)
+        project_path = os.path.dirname(project_path)
+        break
 
-    MQTT_server_path = project_path + "emqx4/bin/emqx.cmd"
-    pixel_bat_path = project_path + "SMART_ROBOT_UE5.5\PixelStreamingInfrastructure\SignallingWebServer\platform_scripts\cmd\start_turn.bat"
-    sovits_bat_path = project_path + "GPT-SoVITS2-241224/开启v2接口服务.bat"
-    game_exe_path = project_path + "SMART_ROBOT_UE5.5\Windows\SMART_ROBOT.exe"
+    if project_path == "":
+        print("找不到根目录，请确保文件完整")
+        exit()
+    else:
+        MQTT_server_path = project_path + "/emqx4/bin/emqx.cmd"
+        pixel_bat_path = project_path + "/SMART_ROBOT_UE5.5\PixelStreamingInfrastructure\SignallingWebServer\platform_scripts\cmd\start.bat"
+        sovits_bat_path = project_path + "/GPT-SoVITS2-241224/开启v2接口服务.bat"
+        game_exe_path = project_path + "/SMART_ROBOT_UE5.5\Windows\SMART_ROBOT.exe"
 
-    # 开启
-    server_ins = SERVER(MQTT_server_path, pixel_bat_path, sovits_bat_path, game_exe_path)
-    server_ins.run()
+        # 开启
+        server_ins = SERVER(MQTT_server_path, pixel_bat_path, sovits_bat_path, game_exe_path)
+        server_ins.run()
