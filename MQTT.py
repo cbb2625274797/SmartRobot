@@ -10,6 +10,7 @@ try:
 except:
     pass
 
+import body.action as action
 
 def start_server(cmd_file_path):
     arg1 = 'start'
@@ -67,6 +68,7 @@ class new_class:
         self.subscribe("other/asr_offline")
         self.subscribe("other/chat_offline")
         self.subscribe("other/drag", 2)
+        self.subscribe("dialog/act")
 
         # 线程控制
         thread1 = threading.Thread(target=self.thread_function_1, args=())
@@ -172,6 +174,20 @@ class new_class:
                 self.father_robot.asr_offline = True
             else:
                 self.father_robot.asr_offline = False
+        elif msg.topic == "dialog/act":
+            print(msg.payload.decode("utf-8"))
+            if msg.payload.decode("utf-8") == "0":
+                action.happy_action(self.father_robot)
+            elif msg.payload.decode("utf-8") == "1":
+                action.scare_action(self.father_robot)
+            elif msg.payload.decode("utf-8") == "2":
+                action.angry_action(self.father_robot)
+            elif msg.payload.decode("utf-8") == "3":
+                action.upset_action(self.father_robot)
+            elif msg.payload.decode("utf-8") == "4":
+                action.curious_action(self.father_robot)
+            elif msg.payload.decode("utf-8") == "5":
+                action.laugh_action(self.father_robot)
 
     def subscribe(self, topic_name, qos=0):
         self.client.subscribe(topic_name, qos=qos)
