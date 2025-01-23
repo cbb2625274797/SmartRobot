@@ -63,7 +63,7 @@ class ROBOT:
             self.ipconfig = json.load(file)
         # 总体参数
         self.asr_offline = True
-        self.asr_model = self.ASR_init()
+        # self.asr_model = self.ASR_init()
         self.mode = mode
         self.name = name
         self.wake_time = 3
