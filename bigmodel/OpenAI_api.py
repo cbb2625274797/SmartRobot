@@ -1,7 +1,4 @@
-import os
-
 from openai import OpenAI
-import base64
 
 
 def qwenvl_ol_request(client, messages, ):

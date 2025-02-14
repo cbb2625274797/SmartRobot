@@ -476,17 +476,17 @@ def thread_function_4(father_robot, controller_return, emotion):
         father_robot.set_rarm_rotation(180 - data_dict["右臂"])
     if not audio_instruct:
         if emotion == '开心':
-            action.happy_action(father_robot)
+            action.emotion_express(father_robot, "happy")
         elif emotion == '害怕':
-            action.scare_action(father_robot)
+            action.emotion_express(father_robot, "scare")
         elif emotion == '生气':
-            action.angry_action(father_robot)
+            action.emotion_express(father_robot, "angry")
         elif emotion == '失落':
-            action.upset_action(father_robot)
+            action.emotion_express(father_robot, "upset")
         elif emotion == '好奇':
-            action.curious_action(father_robot)
+            action.emotion_express(father_robot, "curios")
         elif emotion == '戏谑':
-            action.laugh_action(father_robot)
+            action.emotion_express(father_robot, "laugh")
 
 
 if __name__ == '__main__':
