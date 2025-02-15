@@ -177,17 +177,17 @@ class new_class:
         elif msg.topic == "dialog/act":
             print(msg.payload.decode("utf-8"))
             if msg.payload.decode("utf-8") == "0":
-                action.happy_action(self.father_robot)
+                action.emotion_express(self.father_robot, "happy")
             elif msg.payload.decode("utf-8") == "1":
-                action.scare_action(self.father_robot)
+                action.emotion_express(self.father_robot, "scare")
             elif msg.payload.decode("utf-8") == "2":
-                action.angry_action(self.father_robot)
+                action.emotion_express(self.father_robot, "angry")
             elif msg.payload.decode("utf-8") == "3":
-                action.upset_action(self.father_robot)
+                action.emotion_express(self.father_robot, "upset")
             elif msg.payload.decode("utf-8") == "4":
-                action.curious_action(self.father_robot)
+                action.emotion_express(self.father_robot, "curious")
             elif msg.payload.decode("utf-8") == "5":
-                action.laugh_action(self.father_robot)
+                action.emotion_express(self.father_robot, "laugh")
 
     def subscribe(self, topic_name, qos=0):
         self.client.subscribe(topic_name, qos=qos)

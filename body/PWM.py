@@ -58,7 +58,8 @@ class PWM:
                 print("Error write byte to device")
                 return -1
         except Exception as e:
-            print(e)
+            # print(e)
+            pass
         return 0
 
     def read_byte(self, reg):

@@ -21,15 +21,22 @@ def get_actions(file_name="happy"):
 
 
 def perform_action(robot_ins, action_list, part):
-    # print(f"部件名称: {part}")
+    print(f"部件名称: {part}")
     if part not in action_list:
         print(f"无效的部件名称: {part}")
         return
     else:
         for action in action_list[part]:
             if 'target_angle' in action:
-                robot_ins.set_body_rotation(action['target_angle'], action['speed'])
-                # print(f"  动作: 转动到角度 {action['target_angle']}, 速度 {action['speed']}")
+                if part == "body":
+                    robot_ins.set_body_rotation(action['target_angle'], action['speed'])
+                elif part == "foot":
+                    robot_ins.set_foot_rotation(action['target_angle'], action['speed'])
+                elif part == "larm":
+                    robot_ins.set_larm_rotation(action['target_angle'], action['speed'])
+                elif part == "rarm":
+                    robot_ins.set_rarm_rotation(action['target_angle'], action['speed'])
+                print(f"  动作: 转动到角度 {action['target_angle']}, 速度 {action['speed']}")
             elif 'sleep' in action:
                 time.sleep(action['sleep'])
                 print(f"  动作: 休眠 {action['sleep']} 秒")

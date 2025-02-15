@@ -1,20 +1,33 @@
 {
   "body": [
-    {"target_angle": 90,"speed": 1.0},
-    {"target_angle": 100,"speed": 0.3},
-    {"sleep": 2},
-    {"target_angle": 89,"speed": 0.3}
+    {"target_angle": 90, "speed": 1.5},
+    {"target_angle": 85, "speed": 2.0},
+    {"target_angle": 95, "speed": 2.0},
+    {"target_angle": 85, "speed": 2.0},
+    {"target_angle": 95, "speed": 2.0},
+    {"target_angle": 90, "speed": 1.5}
   ],
   "foot": [
-    {"target_angle": 90,"speed": 1.0},
-    {"target_angle": 90,"speed": 1.0}
+    {"target_angle": 90, "speed": 1.5},
+    {"target_angle": 95, "speed": 3.0},
+    {"sleep": 0.3},
+    {"target_angle": 85, "speed": 3.0},
+    {"sleep": 0.3},
+    {"target_angle": 95, "speed": 3.0},
+    {"target_angle": 90, "speed": 1.5}
   ],
   "larm": [
-    {"target_angle": 0,"speed": 1.0},
-    {"sleep": 1}
+    {"target_angle": 90, "speed": 2.0},
+    {"target_angle": 120, "speed": 4.0},
+    {"target_angle": 60, "speed": 4.0},
+    {"target_angle": 120, "speed": 4.0},
+    {"target_angle": 90, "speed": 2.0}
   ],
   "rarm": [
-    {"target_angle": 0,"speed": 1.0},
-    {"sleep": 1}
+    {"target_angle": 90, "speed": 2.0},
+    {"target_angle": 60, "speed": 4.0},
+    {"target_angle": 120, "speed": 4.0},
+    {"target_angle": 60, "speed": 4.0},
+    {"target_angle": 90, "speed": 2.0}
   ]
 }
