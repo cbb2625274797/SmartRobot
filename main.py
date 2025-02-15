@@ -33,7 +33,7 @@ class orangepi_client:
                 print("MQTT初始化中...")
             elif not self.robot_init_ok:
                 print("机器人初始化中...")
-            time.sleep(1)
+            time.sleep(0.5)
         self.ROBOT_instance.MQTT_instance = self.MQTT_instance
         self.MQTT_instance.father_robot = self.ROBOT_instance
 
