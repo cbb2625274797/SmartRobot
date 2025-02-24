@@ -126,7 +126,7 @@ if __name__ == '__main__':
         print("找不到根目录，请确保文件完整")
         exit()
     else:
-        MQTT_server_path = project_path + "/emqx4/bin/emqx.cmd"
+        MQTT_server_path = project_path + "/emqx-5.3.2/bin/emqx.cmd"
         pixel_bat_path = project_path + "/SMART_ROBOT_UE5.5\PixelStreamingInfrastructure\SignallingWebServer\platform_scripts\cmd\start.bat"
         sovits_bat_path = project_path + "/GPT-SoVITS2-241224/开启v2接口服务.bat"
         game_exe_path = project_path + "/SMART_ROBOT_UE5.5\Windows\SMART_ROBOT.exe"

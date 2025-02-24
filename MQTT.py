@@ -5,12 +5,14 @@ import time
 import paho.mqtt.client as mqtt
 
 import webUI
+
 try:
     from audio.GPT_SOVITS import set_character
 except:
     pass
 
 import body.action as action
+
 
 def start_server(cmd_file_path):
     arg1 = 'start'
@@ -99,71 +101,76 @@ class new_class:
     # sound : character  temperature top_k speed
     # chat: model temperature top_p
     # other: wake_time volume
-    # motion: larm rarm leg foot
+    # motion: larm rarm body foot
     def on_message(self, client, userdata, msg):
         print(msg.topic + ":" + msg.payload.decode("utf-8"))
+        # 假设 msg 和 self.father_robot 是已定义的变量
+        thread = threading.Thread(target=self.handle_message, args=(msg, self.father_robot))
+        thread.start()
+
+    def handle_message(self, msg, robot_ins):
         if msg.topic == "sound/character":
             temp = int(msg.payload.decode("utf-8"))
-            if self.father_robot.sound_character != temp:
+            if robot_ins.sound_character != temp:
                 set_character(temp)
-                self.father_robot.set_sound_model(temp)
+                robot_ins.set_sound_model(temp)
         elif msg.topic == "sound/temperature":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.sound_temperature != temp:
-                self.father_robot.sound_temperature = temp
+            if robot_ins.sound_temperature != temp:
+                robot_ins.sound_temperature = temp
         elif msg.topic == "sound/top_k":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.sound_top_k != temp:
-                self.father_robot.sound_top_k = temp
+            if robot_ins.sound_top_k != temp:
+                robot_ins.sound_top_k = temp
         elif msg.topic == "sound/speed":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.sound_speed != temp:
-                self.father_robot.sound_speed = temp
+            if robot_ins.sound_speed != temp:
+                robot_ins.sound_speed = temp
         elif msg.topic == "chat/model":
             temp = msg.payload.decode("utf-8")
-            if self.father_robot.model != temp:
-                self.father_robot.set_chat_model(temp)
+            if robot_ins.model != temp:
+                robot_ins.set_chat_model(temp)
         elif msg.topic == "chat/temperature":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.chat_temperature != temp:
-                self.father_robot.chat_temperature = temp
+            if robot_ins.chat_temperature != temp:
+                robot_ins.chat_temperature = temp
         elif msg.topic == "chat/top_p":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.chat_top_p != temp:
-                self.father_robot.chat_top_p = temp
+            if robot_ins.chat_top_p != temp:
+                robot_ins.chat_top_p = temp
         elif msg.topic == "other/chat_offline":
             if msg.payload.decode("utf-8") == "1":
-                self.father_robot.chat_offline = True
+                robot_ins.chat_offline = True
             else:
-                self.father_robot.chat_offline = False
+                robot_ins.chat_offline = False
         elif msg.topic == "motion/larm":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.larm != temp:
-                self.father_robot.set_larm_rotation(temp, 3)
+            if robot_ins.larm != temp:
+                robot_ins.set_larm_rotation(temp, 3)
         elif msg.topic == "motion/rarm":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.rarm != temp:
-                self.father_robot.set_rarm_rotation(temp, 3)
+            if robot_ins.rarm != temp:
+                robot_ins.set_rarm_rotation(temp, 3)
         elif msg.topic == "motion/body":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.body != temp:
-                self.father_robot.set_body_rotation(temp, 3)
+            if robot_ins.body != temp:
+                robot_ins.set_body_rotation(temp, 3)
         elif msg.topic == "motion/foot":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.foot != temp:
-                self.father_robot.set_foot_rotation(temp, 3)
+            if robot_ins.foot != temp:
+                robot_ins.set_foot_rotation(temp, 3)
         elif msg.topic == "motion/action_enable":
             temp = int(msg.payload.decode("utf-8"))
-            if self.father_robot.action_enable != bool(temp):
-                self.father_robot.action_enable = bool(temp)
+            if robot_ins.action_enable != bool(temp):
+                robot_ins.action_enable = bool(temp)
         elif msg.topic == "other/wake_time":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.wake_time != temp:
-                self.father_robot.wake_time = temp
+            if robot_ins.wake_time != temp:
+                robot_ins.wake_time = temp
         elif msg.topic == "other/volume":
             temp = float(msg.payload.decode("utf-8"))
-            if self.father_robot.volume != temp:
-                self.father_robot.volume = temp
+            if robot_ins.volume != temp:
+                robot_ins.volume = temp
         elif msg.topic == "other/drag":
             if msg.payload.decode("utf-8") == "1":
                 self.drag = True
@@ -171,23 +178,23 @@ class new_class:
                 self.drag = False
         elif msg.topic == "other/asr_offline":
             if msg.payload.decode("utf-8") == "1":
-                self.father_robot.asr_offline = True
+                robot_ins.asr_offline = True
             else:
-                self.father_robot.asr_offline = False
+                robot_ins.asr_offline = False
         elif msg.topic == "dialog/act":
             print(msg.payload.decode("utf-8"))
             if msg.payload.decode("utf-8") == "0":
-                action.emotion_express(self.father_robot, "happy")
+                action.emotion_express(robot_ins, "happy")
             elif msg.payload.decode("utf-8") == "1":
-                action.emotion_express(self.father_robot, "scare")
+                action.emotion_express(robot_ins, "scare")
             elif msg.payload.decode("utf-8") == "2":
-                action.emotion_express(self.father_robot, "angry")
+                action.emotion_express(robot_ins, "angry")
             elif msg.payload.decode("utf-8") == "3":
-                action.emotion_express(self.father_robot, "upset")
+                action.emotion_express(robot_ins, "upset")
             elif msg.payload.decode("utf-8") == "4":
-                action.emotion_express(self.father_robot, "curious")
+                action.emotion_express(robot_ins, "curious")
             elif msg.payload.decode("utf-8") == "5":
-                action.emotion_express(self.father_robot, "laugh")
+                action.emotion_express(robot_ins, "laugh")
 
     def subscribe(self, topic_name, qos=0):
         self.client.subscribe(topic_name, qos=qos)

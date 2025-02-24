@@ -36,7 +36,7 @@ def perform_action(robot_ins, action_list, part):
                     robot_ins.set_larm_rotation(action['target_angle'], action['speed'])
                 elif part == "rarm":
                     robot_ins.set_rarm_rotation(action['target_angle'], action['speed'])
-                print(f"  动作: 转动到角度 {action['target_angle']}, 速度 {action['speed']}")
+                # print(f"  动作: 转动到角度 {action['target_angle']}, 速度 {action['speed']}")
             elif 'sleep' in action:
                 time.sleep(action['sleep'])
                 print(f"  动作: 休眠 {action['sleep']} 秒")
