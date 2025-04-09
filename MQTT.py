@@ -209,3 +209,7 @@ class new_class:
         """
         self.client.publish(topic, message, qos=qos)
         print('publish', topic, ":", message)
+
+if __name__ == "__main__":
+    MQTT_instance = new_class()
+    MQTT_instance.run()
