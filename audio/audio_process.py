@@ -223,4 +223,4 @@ def play(file_path, volume: float = 1):
 
 
 if __name__ == '__main__':
-    record_until_silence(2, 16000, "recorded_audio.wav")
+    record(5, 16000, "./test.wav")
