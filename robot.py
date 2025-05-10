@@ -68,6 +68,7 @@ class ROBOT:
         self.name = name
         self.wake_time = 3
         self.continue_talk = True
+        self.deep_think = True
         self.volume = 1
         # 文字大模型API参数
         self.chat_offline = True

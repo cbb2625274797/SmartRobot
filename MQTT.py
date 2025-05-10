@@ -63,6 +63,7 @@ class new_class:
         self.subscribe("chat/model", 2)
         self.subscribe("chat/temperature")
         self.subscribe("chat/top_p")
+        self.subscribe("chat/deep_think")
         self.subscribe("motion/larm")
         self.subscribe("motion/rarm")
         self.subscribe("motion/body")
@@ -146,6 +147,11 @@ class new_class:
                 robot_ins.chat_offline = True
             else:
                 robot_ins.chat_offline = False
+        elif msg.topic == "other/deep_think":
+            if msg.payload.decode("utf-8") == "1":
+                robot_ins.deep_think= True
+            else:
+                robot_ins.deep_think = False
         elif msg.topic == "motion/larm":
             temp = float(msg.payload.decode("utf-8"))
             if robot_ins.larm != temp:

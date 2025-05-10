@@ -211,6 +211,14 @@ def chat(model, chat_text, father_robot: ROBOT):
                 resp = OpenAI_api.qwenvl_ol_request(bailian_client, msgs_img)
                 thread_text_generate = threading.Thread(target=thread_function_1_img, args=(resp,))
             else:
+                # 深度思考参数控制
+                if not father_robot.deep_think:
+                    if not '/no_think' in system_prompt:
+                        system_prompt += '/no_think'
+                else:
+                    if '/no_think' in system_prompt:
+                        system_prompt = system_prompt.replace('/no_think', '')
+
                 resp = get_ollama_resp(model, ask, system_prompt)
                 thread_text_generate = threading.Thread(target=thread_function_1_ollama, args=(resp,))
         else:
@@ -347,9 +355,7 @@ def thread_function_1_ollama(resp):
                     result = json.loads(decoded_line)
                     text += result['message']['content']  # 消耗性
                     reply_text += result['message']['content']  # 用于保存输出
-
-                    # 处理chunk数据
-                    # print(chunk['message']['content'], end='')  # 示例处理：打印每一块数据
+                    print(result['message']['content'], end='')
                 except json.JSONDecodeError:
                     print(f"非JSON格式的数据：{decoded_line}")
     else:
@@ -484,7 +490,7 @@ def thread_function_4(father_robot, controller_return, emotion):
         elif emotion == '失落':
             action.emotion_express(father_robot, "upset")
         elif emotion == '好奇':
-            action.emotion_express(father_robot, "curios")
+            action.emotion_express(father_robot, "curious")
         elif emotion == '戏谑':
             action.emotion_express(father_robot, "laugh")
 
